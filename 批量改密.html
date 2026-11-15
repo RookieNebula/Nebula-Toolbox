@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-accent="indigo" data-motion="on" data-fx="on">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f3f4f7">
+<title>批量改密 · Nebula</title>
+<link rel="stylesheet" href="ui-kit.css">
+<link rel="stylesheet" href="tool-page.css">
+<style>
+  .pw-editor{min-height:132px;max-height:260px;}
+  .pw-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+  .pw-chips .tag{height:20px;font-size:8.5px;}
+  .pw-list{max-height:430px;overflow-y:auto;}
+  .pw-row{padding:10px 11px;border-bottom:1px solid var(--line);}
+  .pw-row:last-child{border-bottom:0;}
+  .pw-raw{font-family:ui-monospace,monospace;font-size:9.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;gap:6px;align-items:center;}
+  .pw-raw i{font-style:normal;font-size:8px;font-weight:800;min-width:16px;color:var(--faint);}
+  .pw-codes{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;padding-left:22px;}
+  .pw-code{
+    display:inline-flex;align-items:center;min-height:24px;padding:2px 8px;border-radius:7px;
+    background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-soft-2);
+    font-family:ui-monospace,monospace;font-size:10.5px;font-weight:900;letter-spacing:.05em;word-break:break-all;
+  }
+  .pw-code.cjk{background:var(--warn-soft);color:var(--warn);border-color:transparent;letter-spacing:.1em;}
+  .pw-note{margin:6px 0 0 22px;font-family:ui-monospace,monospace;font-size:9px;line-height:1.5;color:var(--muted);word-break:break-all;}
+  .pw-empty{padding:32px 14px;text-align:center;color:var(--faint);font-size:10.5px;line-height:1.7;}
+  .pw-empty .ic{width:26px;height:26px;margin:0 auto 8px;opacity:.35;}
+  .strength{display:flex;align-items:center;gap:8px;margin-top:9px;}
+  .strength .bar{flex:1;height:4px;border-radius:2px;background:var(--bg-2);overflow:hidden;}
+  .strength .bar i{display:block;height:100%;width:0;background:var(--ok);transition:width .25s var(--ease),background-color .25s;}
+  .strength span{font-size:8.5px;font-weight:800;color:var(--faint);white-space:nowrap;}
+  .pw-warn{margin-top:9px;padding:8px 10px;border-radius:10px;background:var(--warn-soft);color:var(--warn);font-size:9px;line-height:1.5;font-weight:650;display:none;}
+  .pw-warn.show{display:block;}
+  .custom-set{display:none;}
+  .custom-set.show{display:block;}
+</style>
+</head>
+<body>
+
+<main class="tool-shell">
+  <div id="head"></div>
+
+  <section class="panel">
+    <div class="panel-head">
+      <svg class="ic"><use href="#i-list"/></svg><b>导入数据行</b>
+      <span class="panel-sub" id="rowCount">0 行</span>
+    </div>
+    <div class="editor-wrap">
+      <textarea class="editor pw-editor" id="editor" spellcheck="false" autocomplete="off" placeholder="每行一条，原样保留&#10;13731252652----2481100----3716458----BOB32481100----yan1008"></textarea>
+    </div>
+    <div class="editor-bar">
+      <button class="mini-btn" type="button" id="importBtn"><svg class="ic"><use href="#i-upload"/></svg>导入</button>
+      <button class="mini-btn" type="button" id="pasteBtn"><svg class="ic"><use href="#i-copy"/></svg>粘贴</button>
+      <button class="mini-btn" type="button" id="sampleBtn"><svg class="ic"><use href="#i-spark"/></svg>示例</button>
+      <span class="spacer"></span>
+      <button class="mini-btn ghost" type="button" id="clearBtn"><svg class="ic"><use href="#i-trash"/></svg>清空</button>
+    </div>
+    <div class="nb-count-row">
+      <div class="nb-bar" id="bar"><i></i></div>
+      <span class="nb-count" id="count">0 / 50,000 字</span>
+    </div>
+    <div class="stat-grid">
+      <div><b id="stRows">0</b><span>有效行</span></div>
+      <div><b id="stCodes">0</b><span>将生成</span></div>
+      <div><b id="stSet">16 进制</b><span>字符集</span></div>
+      <div><b id="stLen">8 位</b><span>每组长度</span></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><svg class="ic"><use href="#i-key"/></svg><b>生成设置</b><span class="panel-sub">改完点生成</span></div>
+
+    <div class="field-grid">
+      <div class="field full">
+        <label><svg class="ic"><use href="#i-dice"/></svg>字符集</label>
+        <div class="seg" id="setSeg">
+          <button type="button" data-c="16" class="on">16 进制</button>
+          <button type="button" data-c="24">24 进制</button>
+          <button type="button" data-c="36">36 进制</button>
+        </div>
+        <div class="seg" id="setSeg2" style="margin-top:4px">
+          <button type="button" data-c="62">62 进制</button>
+          <button type="button" data-c="num">纯数字</button>
+          <button type="button" data-c="lower">小写</button>
+        </div>
+        <div class="seg" id="setSeg3" style="margin-top:4px">
+          <button type="button" data-c="b32">Base32</button>
+          <button type="button" data-c="b58">Base58</button>
+          <button type="button" data-c="sym">符号混排</button>
+        </div>
+        <div class="seg" id="setSeg4" style="margin-top:4px">
+          <button type="button" data-c="b64">Base64</button>
+          <button type="button" data-c="uuid">UUID</button>
+          <button type="button" data-c="cjk">乱码</button>
+        </div>
+        <div class="hint" id="setHint">0–9 与 A–F，共 16 个字符</div>
+        <div class="custom-set" id="customSet" style="margin-top:8px">
+          <label><svg class="ic"><use href="#i-code"/></svg>自定义字符集</label>
+          <div style="display:flex;gap:6px">
+            <input type="text" id="customChars" placeholder="例如：ABCDEFGHJKMNPQRSTUVWXYZ23456789" maxlength="80" autocomplete="off" style="flex:1;min-width:0">
+            <button class="mini-btn" type="button" id="useCustom"><svg class="ic"><use href="#i-check"/></svg>启用</button>
+          </div>
+          <div class="hint">会自动去重，至少 2 个字符</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label><svg class="ic"><use href="#i-key"/></svg>每组长度</label>
+        <select id="lenSel">
+          <option value="6">6 位</option>
+          <option value="8" selected>8 位</option>
+          <option value="12">12 位</option>
+          <option value="16">16 位</option>
+          <option value="24">24 位</option>
+          <option value="custom">自定义…</option>
+        </select>
+      </div>
+      <div class="field custom-set" id="customLenField">
+        <label><svg class="ic"><use href="#i-info"/></svg>长度</label>
+        <input type="number" id="customLen" min="4" max="64" step="1" value="8" inputmode="numeric">
+        <div class="hint">4–64 位</div>
+      </div>
+
+      <div class="field">
+        <label><svg class="ic"><use href="#i-list"/></svg>每行组数</label>
+        <select id="groupSel">
+          <option value="1" selected>1 组</option>
+          <option value="2">2 组</option>
+          <option value="3">3 组</option>
+          <option value="5">5 组</option>
+        </select>
+      </div>
+      <div class="field">
+        <label><svg class="ic"><use href="#i-file"/></svg>输出格式</label>
+        <select id="modeSel">
+          <option value="note" selected>下一行备注</option>
+          <option value="append">行尾追加</option>
+          <option value="only">仅密码</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label><svg class="ic"><use href="#i-code"/></svg>前缀（可选）</label>
+        <input type="text" id="prefix" maxlength="8" placeholder="如 Bob" autocomplete="off">
+      </div>
+      <div class="field">
+        <label><svg class="ic"><use href="#i-code"/></svg>后缀（可选）</label>
+        <input type="text" id="suffix" maxlength="8" placeholder="如 2024" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="switch-row" style="margin-top:12px">
+      <span class="sr-copy"><b>排除易混字符</b><span>去掉 0 O 1 l I，抄写不认错</span></span>
+      <button class="switch" id="noAmb" type="button" role="switch" aria-checked="false" aria-label="排除易混字符"></button>
+    </div>
+    <div class="switch-row">
+      <span class="sr-copy"><b>批内去重</b><span>同一次生成不出现重复密码</span></span>
+      <button class="switch" id="dedupe" type="button" role="switch" aria-checked="true" aria-label="批内去重"></button>
+    </div>
+
+    <div class="strength">
+      <div class="bar" id="strBar"><i></i></div>
+      <span id="strText">强度 —</span>
+    </div>
+    <div class="pw-warn" id="cjkWarn">乱码模式生成的是不可输入的填充串，不能作为真实密码使用。</div>
+
+    <div class="action-bar">
+      <button class="btn btn-primary" id="runBtn" type="button"><svg class="ic"><use href="#i-play"/></svg>生成</button>
+      <button class="btn btn-ghost" id="resetBtn" type="button">重置</button>
+    </div>
+    <div class="note-line"><svg class="ic"><use href="#i-shield"/></svg><span>使用系统加密随机数，结果只在本地内存，不上传。</span></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <svg class="ic"><use href="#i-dice"/></svg><b>生成结果</b>
+      <span class="panel-sub" id="resCount">还没有结果</span>
+    </div>
+    <div class="result-actions" style="margin-bottom:10px">
+      <button class="mini-btn" type="button" id="copyBtn"><svg class="ic"><use href="#i-copy"/></svg>复制</button>
+      <button class="mini-btn" type="button" id="exportBtn"><svg class="ic"><use href="#i-download"/></svg>导出 TXT</button>
+      <button class="mini-btn" type="button" id="exportCsv"><svg class="ic"><use href="#i-download"/></svg>导出 CSV</button>
+    </div>
+    <div class="preview" id="preview">
+      <div class="pw-empty"><svg class="ic"><use href="#i-dice"/></svg>导入数据后点「生成」<br>每一行的结果会显示在这里</div>
+    </div>
+  </section>
+
+  <div class="result-dock" id="dock">
+    <div class="rd-copy"><b id="dockTitle">0 组密码</b><span id="dockSub">尚未生成</span></div>
+    <button class="btn btn-primary" id="dockCopy" type="button">复制</button>
+    <button class="btn btn-ghost" id="dockExport" type="button">导出</button>
+  </div>
+</main>
+
+<script src="lib-io.js"></script>
+<script src="ui-kit.js"></script>
+<script src="app-core.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+
+  var SETS = {
+    '16': { name: '16 进制', chars: '0123456789ABCDEF', hint: '0–9 与 A–F，共 16 个字符' },
+    '24': { name: '24 进制', chars: '0123456789ABCDEFGHIJKLMN', hint: '0–9 与 A–N，共 24 个字符' },
+    '36': { name: '36 进制', chars: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', hint: '0–9 与 A–Z，共 36 个字符' },
+    '62': { name: '62 进制', chars: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', hint: '数字 + 大小写字母，共 62 个字符' },
+    'num': { name: '纯数字', chars: '0123456789', hint: '0–9，适合纯数字密码' },
+    'lower': { name: '小写', chars: 'abcdefghijklmnopqrstuvwxyz', hint: 'a–z，共 26 个字符' },
+    'b32': { name: 'Base32', chars: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567', hint: 'Base32 字母表（RFC 4648）' },
+    'b58': { name: 'Base58', chars: '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz', hint: 'Base58（比特币字母表，无 0OIl）' },
+    'sym': { name: '符号混排', chars: '0123456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ!@#$%^&*()-_=+[]{}:,.?', hint: '大小写 + 数字 + 常见符号' },
+    'b64': { name: 'Base64', bytes: true, hint: '随机字节 → Base64 字符串' },
+    'uuid': { name: 'UUID', uuid: true, hint: '标准 UUID v4，每行一个' },
+    'cjk': { name: '乱码', cjk: true, hint: 'CJK 汉字 + 全角符号随机混合' }
+  };
+  var AMBIG = /[0O1lI]/g;
+  var state = { rows: [], result: [], set: '16', len: 8, groups: 1, ran: false };
+
+  $('head').innerHTML = NB.toolHead({
+    icon: '<svg class="ic"><use href="#i-key"/></svg>',
+    kicker: 'PASSWORD LAB',
+    title: '批量改密',
+    sub: '按行批量生成随机密码：16/24/36/62 进制、Base32/58/64、UUID、乱码填充。全部本地生成。',
+    tags: ['多字符集', '每行 1–5 组', '5 万行']
+  }) + NB.sprite();
+  NB.bindTheme();
+
+  var counter = NB.counter($('editor'), $('count'));
+  NB.draft('password', $('editor'));
+
+  function linesOf(t) { return String(t || '').replace(/\r\n?/g, '\n').split('\n'); }
+
+  function parseRows() {
+    var rows = [];
+    linesOf($('editor').value).forEach(function (l) {
+      if (!l.trim()) return;
+      rows.push(l.replace(/\s+$/, ''));
+    });
+    if (rows.length > NB.MAX_ROWS) {
+      rows = rows.slice(0, NB.MAX_ROWS);
+      NB.toast('超过 5 万行，已截断');
+    }
+    state.rows = rows;
+    return rows;
+  }
+
+  function effectiveSet() {
+    if (state.set === 'custom') {
+      var c = ($('customChars').value || '').replace(/\s/g, '');
+      var uniq = '';
+      for (var i = 0; i < c.length; i++) if (uniq.indexOf(c[i]) < 0) uniq += c[i];
+      return uniq;
+    }
+    return SETS[state.set] && SETS[state.set].chars || '';
+  }
+
+  function currentLen() {
+    var v = $('lenSel').value;
+    if (v !== 'custom') return parseInt(v, 10) || 8;
+    var n = parseInt($('customLen').value, 10);
+    return Math.min(64, Math.max(4, n || 8));
+  }
+
+  function stats() {
+    var rows = parseRows();
+    state.groups = parseInt($('groupSel').value, 10) || 1;
+    state.len = currentLen();
+    var set = effectiveSet();
+    var label = state.set === 'custom' ? '自定义' : (SETS[state.set] ? SETS[state.set].name : '—');
+    $('stRows').textContent = NB.fmtNum(rows.length);
+    $('stCodes').textContent = NB.fmtNum(rows.length * state.groups);
+    $('stSet').textContent = label;
+    $('stLen').textContent = state.len + ' 位';
+    $('rowCount').textContent = NB.fmtNum(rows.length) + ' 行';
+    $('setHint').textContent = state.set === 'custom'
+      ? (set.length ? '自定义 ' + set.length + ' 个字符：' + set.slice(0, 24) + (set.length > 24 ? '…' : '') : '至少输入 2 个字符')
+      : (SETS[state.set] ? SETS[state.set].hint : '');
+    $('cjkWarn').classList.toggle('show', state.set === 'cjk');
+    paintStrength(set);
+    var chars = $('editor').value.length;
+    var pct = Math.min(100, chars / NB.MAX_TEXT * 100);
+    $('bar').firstElementChild.style.width = pct + '%';
+    $('bar').classList.toggle('over', chars > NB.MAX_TEXT);
+  }
+
+  function paintStrength(set) {
+    var n = state.set === 'cjk' ? 2000 : state.set === 'uuid' ? 16 : state.set === 'b64' ? 64 : set.length;
+    var bits = Math.round(state.len * (Math.log(n) / Math.log(2)));
+    var pct = Math.min(100, Math.round(bits / 160 * 100));
+    var txt = bits < 40 ? '弱' : bits < 70 ? '中' : bits < 100 ? '强' : '很强';
+    var color = bits < 40 ? 'var(--bad)' : bits < 70 ? 'var(--warn)' : 'var(--ok)';
+    $('strBar').firstElementChild.style.width = pct + '%';
+    $('strBar').firstElementChild.style.background = color;
+    $('strText').textContent = '强度 ' + txt + ' · 约 ' + bits + ' bit';
+  }
+
+  /* ---------- 随机 ---------- */
+  var cryptoObj = window.crypto || window.msCrypto;
+  function rand32() {
+    if (cryptoObj && cryptoObj.getRandomValues) {
+      var a = new Uint32Array(1);
+      cryptoObj.getRandomValues(a);
+      return a[0];
+    }
+    return Math.floor(Math.random() * 4294967296);
+  }
+
+  function randomFromAlphabet(len, alphabet) {
+    var n = alphabet.length, s = '';
+    if (n < 2) return '';
+    var max = Math.floor(4294967296 / n) * n;
+    while (s.length < len) {
+      var r = rand32();
+      if (r >= max) continue;
+      s += alphabet.charAt(r % n);
+    }
+    return s;
+  }
+
+  function randomCJK(len) {
+    var out = '';
+    var pools = [
+      [0x4E00, 0x9FA5], [0x3000, 0x303F], [0xFF01, 0xFF5E], [0x0391, 0x03C9], [0x0400, 0x04FF]
+    ];
+    while (out.length < len) {
+      var p = pools[rand32() % pools.length];
+      var code = p[0] + (rand32() % (p[1] - p[0] + 1));
+      out += String.fromCharCode(code);
+    }
+    return out;
+  }
+
+  function randomBase64(len) {
+    var bytes = new Uint8Array(Math.ceil(len * 0.75));
+    if (cryptoObj && cryptoObj.getRandomValues) cryptoObj.getRandomValues(bytes);
+    else for (var i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+    var b = '';
+    for (var j = 0; j < bytes.length; j++) b += String.fromCharCode(bytes[j]);
+    return btoa(b).replace(/=+$/, '').slice(0, len);
+  }
+
+  function uuid4() {
+    var b = new Uint8Array(16);
+    if (cryptoObj && cryptoObj.getRandomValues) cryptoObj.getRandomValues(b);
+    else for (var i = 0; i < 16; i++) b[i] = Math.floor(Math.random() * 256);
+    b[6] = (b[6] & 0x0f) | 0x40;
+    b[8] = (b[8] & 0x3f) | 0x80;
+    var h = [];
+    for (var k = 0; k < 16; k++) h.push(('0' + b[k].toString(16)).slice(-2));
+    return h.slice(0, 4).join('') + '-' + h.slice(4, 6).join('') + '-' + h.slice(6, 8).join('') + '-' + h.slice(8, 10).join('') + '-' + h.slice(10).join('');
+  }
+
+  function makeCode() {
+    if (state.set === 'uuid') return uuid4();
+    if (state.set === 'b64') return randomBase64(state.len);
+    if (state.set === 'cjk') return randomCJK(state.len);
+    var set = effectiveSet();
+    if ($('noAmb').getAttribute('aria-checked') === 'true') set = set.replace(AMBIG, '');
+    return randomFromAlphabet(state.len, set);
+  }
+
+  function buildForRow(used) {
+    var arr = [];
+    var dedupe = $('dedupe').getAttribute('aria-checked') === 'true';
+    var prefix = $('prefix').value || '';
+    var suffix = $('suffix').value || '';
+    for (var g = 0; g < state.groups; g++) {
+      var code = '', tries = 0;
+      do {
+        code = makeCode();
+        tries++;
+      } while (dedupe && used.has(code) && tries < 60);
+      used.add(code);
+      arr.push(prefix + code + suffix);
+    }
+    return arr;
+  }
+
+  function run() {
+    var rows = parseRows();
+    if (!rows.length) { NB.toast('请先粘贴或导入数据行'); $('editor').focus(); return; }
+    if (state.set === 'custom' && effectiveSet().length < 2) { NB.toast('自定义字符集至少 2 个字符'); return; }
+    state.groups = parseInt($('groupSel').value, 10) || 1;
+    state.len = currentLen();
+    var used = new Set();
+    var out = [];
+    var t0 = performance.now();
+    for (var i = 0; i < rows.length; i++) out.push({ raw: rows[i], codes: buildForRow(used) });
+    state.result = out;
+    state.ran = true;
+    render();
+    $('resCount').textContent = NB.fmtNum(out.length) + ' 行 · ' + NB.fmtNum(out.length * state.groups) + ' 组';
+    $('dockTitle').textContent = NB.fmtNum(out.length * state.groups) + ' 组密码';
+    $('dockSub').textContent = (SETS[state.set] ? SETS[state.set].name : '自定义') + ' · ' + state.len + ' 位 · ' + state.groups + ' 组/行 · ' + Math.round(performance.now() - t0) + 'ms';
+    $('dock').classList.add('show');
+    NB.haptic(10);
+  }
+  $('runBtn').addEventListener('click', run);
+
+  function noteFor(codes) {
+    return '可用密码' + codes.map(function (c, i) { return '（' + (i + 1) + '）' + c; }).join(' ');
+  }
+
+  function buildOutput() {
+    var mode = $('modeSel').value;
+    var lines = [];
+    state.result.forEach(function (r) {
+      if (mode === 'note') { lines.push(r.raw); lines.push(noteFor(r.codes)); }
+      else if (mode === 'append') lines.push(r.raw + '----' + r.codes.join('----'));
+      else lines.push(r.codes.join(' '));
+    });
+    return lines.join('\n');
+  }
+
+  function render() {
+    var box = $('preview');
+    if (!state.result.length) {
+      box.innerHTML = '<div class="pw-empty"><svg class="ic"><use href="#i-dice"/></svg>还没有结果</div>';
+      return;
+    }
+    var mode = $('modeSel').value;
+    var show = state.result.slice(0, 80);
+    var html = '<div class="pw-list">';
+    show.forEach(function (r, i) {
+      html += '<div class="pw-row"><div class="pw-raw"><i>' + (i + 1) + '</i><span>' + NB.esc(r.raw) + '</span></div>' +
+        '<div class="pw-codes">' + r.codes.map(function (c) {
+          return '<span class="pw-code' + (state.set === 'cjk' ? ' cjk' : '') + '">' + NB.esc(c) + '</span>';
+        }).join('') + '</div>' +
+        (mode === 'only' ? '' : '<div class="pw-note">' + NB.esc(mode === 'note' ? noteFor(r.codes) : '追加：' + r.codes.join('----')) + '</div>') +
+        '</div>';
+    });
+    html += '</div>';
+    if (state.result.length > show.length) {
+      html += '<div class="preview-foot">仅预览前 ' + show.length + ' 行 · 导出包含全部 ' + NB.fmtNum(state.result.length) + ' 行</div>';
+    }
+    box.innerHTML = html;
+  }
+
+  /* ---------- 交互 ---------- */
+  document.querySelectorAll('#setSeg button, #setSeg2 button, #setSeg3 button, #setSeg4 button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      state.set = b.getAttribute('data-c');
+      document.querySelectorAll('#setSeg button, #setSeg2 button, #setSeg3 button, #setSeg4 button').forEach(function (x) {
+        x.classList.toggle('on', x === b);
+      });
+      $('customSet').classList.toggle('show', state.set === 'custom');
+      if (state.set === 'uuid') { $('lenSel').value = 'custom'; $('customLen').value = '36'; }
+      stats();
+      NB.haptic(6);
+    });
+  });
+  $('lenSel').addEventListener('change', function () {
+    $('customLenField').classList.toggle('show', this.value === 'custom');
+    stats();
+  });
+  $('customChars').addEventListener('focus', function () {
+    $('customSet').classList.add('show');
+  });
+  $('useCustom').addEventListener('click', function () {
+    state.set = 'custom';
+    document.querySelectorAll('#setSeg button, #setSeg2 button, #setSeg3 button, #setSeg4 button').forEach(function (x) { x.classList.remove('on'); });
+    $('customSet').classList.add('show');
+    stats();
+    NB.toast('已切换到自定义字符集');
+  });
+  $('customLen').addEventListener('input', function () {
+    this.value = String(Math.min(64, Math.max(4, parseInt(this.value, 10) || 8)));
+    stats();
+  });
+  ['customChars', 'prefix', 'suffix'].forEach(function (id) {
+    $(id).addEventListener('input', NB.debounce(stats, 120));
+  });
+  ['groupSel', 'modeSel'].forEach(function (id) { $(id).addEventListener('change', stats); });
+  $('noAmb').addEventListener('click', function () {
+    this.setAttribute('aria-checked', this.getAttribute('aria-checked') === 'true' ? 'false' : 'true');
+  });
+  $('dedupe').addEventListener('click', function () {
+    this.setAttribute('aria-checked', this.getAttribute('aria-checked') === 'true' ? 'false' : 'true');
+  });
+  $('editor').addEventListener('input', NB.debounce(stats, 160));
+
+  $('importBtn').addEventListener('click', function () {
+    NB.upload({
+      accept: '.txt,.csv,.log,.tsv,text/plain',
+      onText: function (text, f) {
+        $('editor').value = text;
+        counter.refresh();
+        stats();
+        NB.toast('已导入 ' + f.name);
+      }
+    });
+  });
+  $('pasteBtn').addEventListener('click', function () {
+    if (!navigator.clipboard || !navigator.clipboard.readText) { NB.toast('请长按输入框粘贴'); return; }
+    navigator.clipboard.readText().then(function (t) {
+      if (!t) { NB.toast('剪贴板是空的'); return; }
+      $('editor').value = t;
+      counter.refresh(); stats(); NB.toast('已粘贴');
+    }).catch(function () { NB.toast('无法读取剪贴板'); });
+  });
+  $('sampleBtn').addEventListener('click', function () {
+    $('editor').value = [
+      '13731252652----2481100----3716458----BOB32481100----yan1008',
+      '13731252653----2481101----1200345----BOB32481101----yan1009',
+      '13731252654----2481102----9988776----BOB32481102----yan1010',
+      '13731252655----2481103----0451200----BOB32481103----yan1011'
+    ].join('\n');
+    counter.refresh(); stats(); run();
+  });
+  $('clearBtn').addEventListener('click', function () {
+    function go() {
+      $('editor').value = '';
+      state.result = [];
+      $('preview').innerHTML = '<div class="pw-empty"><svg class="ic"><use href="#i-dice"/></svg>导入数据后点「生成」<br>每一行的结果会显示在这里</div>';
+      $('dock').classList.remove('show');
+      $('resCount').textContent = '还没有结果';
+      counter.refresh(); stats();
+      IO.clearFx('清空成功');
+    }
+    if ($('editor').value) {
+      IO.confirm({ title: '清空当前内容？', text: '输入与生成结果都会清空。', okText: '清空', danger: true, onOk: go });
+    } else go();
+  });
+  $('resetBtn').addEventListener('click', function () {
+    state.set = '16'; state.groups = 1; state.len = 8;
+    document.querySelectorAll('#setSeg button, #setSeg2 button, #setSeg3 button, #setSeg4 button').forEach(function (x) {
+      x.classList.toggle('on', x.getAttribute('data-c') === '16');
+    });
+    $('lenSel').value = '8'; $('customLen').value = '8';
+    $('customLenField').classList.remove('show');
+    $('customSet').classList.remove('show');
+    $('groupSel').value = '1'; $('modeSel').value = 'note';
+    $('prefix').value = ''; $('suffix').value = '';
+    $('noAmb').setAttribute('aria-checked', 'false');
+    $('dedupe').setAttribute('aria-checked', 'true');
+    stats(); NB.toast('已恢复默认');
+  });
+
+  /* ---------- 导出 ---------- */
+  function doExport(ext) {
+    if (!state.result.length) { NB.toast('还没有生成结果'); return; }
+    var text;
+    if (ext === 'csv') {
+      var rows = [['原始行', '密码1', '密码2', '密码3', '密码4', '密码5']];
+      state.result.forEach(function (r) {
+        var row = [r.raw];
+        for (var i = 0; i < 5; i++) row.push(r.codes[i] || '');
+        rows.push(row);
+      });
+      text = rows.map(function (r) {
+        return r.map(function (c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(',');
+      }).join('\n');
+    } else {
+      text = buildOutput();
+    }
+    NB.exportDialog({
+      text: text,
+      name: '批量改密_' + NB.stamp(),
+      ext: ext,
+      meta: NB.fmtNum(state.result.length) + ' 行'
+    });
+  }
+  $('exportBtn').addEventListener('click', function () { doExport('txt'); });
+  $('exportCsv').addEventListener('click', function () { doExport('csv'); });
+  $('dockExport').addEventListener('click', function () { doExport('txt'); });
+  function copyAll() {
+    if (!state.result.length) { NB.toast('还没有生成结果'); return; }
+    IO.copy(buildOutput()).then(function (ok) { NB.toast(ok ? '已复制全部结果' : '复制失败'); });
+  }
+  $('copyBtn').addEventListener('click', copyAll);
+  $('dockCopy').addEventListener('click', copyAll);
+
+  document.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); }
+  });
+
+  (function init() {
+    if (!$('editor').value) {
+      $('editor').value = '13731252652----2481100----3716458----BOB32481100----yan1008\n' +
+        '13731252653----2481101----1200345----BOB32481101----yan1009';
+    }
+    counter.refresh();
+    stats();
+  })();
+})();
+</script>
+</body>
+</html>

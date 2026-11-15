@@ -1,0 +1,323 @@
+/* =====================================================================
+   tool-skin.css — Nebula 子页统一皮肤
+   只负责外观；不改变旧功能页的布局结构、DOM id 和脚本逻辑。
+   ===================================================================== */
+@import url("ui-kit.css");
+
+body.legacy-tool{
+  --bg:#f3f4f7;--bg-2:#e9ebf0;
+  --surface:rgba(255,255,255,.86);--surface-2:rgba(255,255,255,.6);--surface-solid:#fff;
+  --ink:#12141a;--ink-2:#2b2f3a;--muted:#697080;--faint:#9aa1af;
+  --line:rgba(18,20,26,.075);--line-strong:rgba(18,20,26,.13);
+  --panel:var(--surface);--panel2:var(--surface-2);--solid:var(--surface-solid);
+  --primary:var(--accent);--primary-hover:var(--accent-2);
+  --primary-light:var(--accent-soft);--primary-glow:var(--accent-soft-2);
+  --border-color:var(--line);--bg-card:var(--surface);
+  --glass-bg:var(--surface);--bg-fallback:var(--bg);
+  --text-main:var(--ink);--text-muted:var(--muted);--soft:var(--accent-soft);
+  --accent-blue:var(--accent);--accent-purple:var(--accent-2);
+  --shadow-md:var(--shadow-sm);--shadow-glow-card:var(--shadow-sm);
+  --radius-md:12px;--radius-lg:22px;
+  width:100%;max-width:820px;margin:0 auto;padding:18px 14px 56px;
+  display:block;min-height:100vh;min-height:100dvh;
+  color:var(--ink);background:var(--bg) !important;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:13px;line-height:1.55;overflow-x:hidden;
+}
+html[data-theme="dark"] body.legacy-tool{
+  --bg:#080a10;--bg-2:#0d1018;
+  --surface:rgba(22,25,36,.9);--surface-2:rgba(29,33,47,.66);--surface-solid:#171a25;
+  --ink:#f0f2f8;--ink-2:#ccd2e2;--muted:#9098aa;--faint:#646d82;
+  --line:rgba(255,255,255,.075);--line-strong:rgba(255,255,255,.14);
+  --panel:var(--surface);--panel2:var(--surface-2);--solid:var(--surface-solid);
+  --border-color:var(--line);--bg-card:var(--surface);--glass-bg:var(--surface);
+  --bg-fallback:var(--bg);--text-main:var(--ink);--text-muted:var(--muted);
+  background:var(--bg) !important;color:var(--ink) !important;
+}
+body.legacy-tool .wrap{max-width:none;margin:0;padding:0;}
+body.legacy-tool.has-fab{padding-bottom:calc(112px + env(safe-area-inset-bottom));}
+body.legacy-tool .ts-head{padding:4px 0 16px;animation:tsRise .48s var(--ease) both;}
+body.legacy-tool .tool-head-row{display:flex;align-items:flex-start;gap:12px;}
+body.legacy-tool .tool-head-icon{
+  width:46px;height:46px;border-radius:15px;flex:none;display:grid;place-items:center;
+  margin-top:2px;color:var(--accent);background:var(--accent-soft);
+  border:1px solid var(--accent-soft-2);box-shadow:0 8px 20px -14px var(--accent);
+}
+body.legacy-tool .tool-head-icon .ic{width:23px;height:23px;}
+body.legacy-tool .tool-head{min-width:0;flex:1;}
+body.legacy-tool .tool-head .kicker{font-size:9px;color:var(--muted);}
+body.legacy-tool .tool-head h1{
+  margin:6px 0 6px;font-size:28px;line-height:1.08;letter-spacing:-.045em;
+  font-weight:900;color:var(--ink);
+}
+body.legacy-tool .tool-head p{margin:0;max-width:36em;font-size:11.5px;line-height:1.65;color:var(--muted);font-weight:600;}
+body.legacy-tool .ts-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px;}
+body.legacy-tool .ts-tags .tag{height:20px;font-size:8.5px;}
+
+/* ---------- 卡片 ---------- */
+body.legacy-tool .card{
+  position:relative;overflow:hidden;
+  background:linear-gradient(165deg,var(--surface) 0%,var(--surface-2) 100%);
+  border:1px solid var(--line);border-radius:22px;padding:18px;
+  box-shadow:0 14px 34px -26px rgba(29,35,80,.46),inset 0 1px 0 rgba(255,255,255,.5);
+  backdrop-filter:none;-webkit-backdrop-filter:none;color:var(--ink);
+}
+body.legacy-tool .card::before{
+  content:"";position:absolute;left:18px;right:18px;top:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accent-soft-2),transparent);
+}
+body.legacy-tool .card + .card{margin-top:16px;}
+body.legacy-tool .segmented-control,
+body.legacy-tool .tabs{margin-bottom:14px;}
+body.legacy-tool .segmented-control + .card,
+body.legacy-tool .tabs + .card,
+body.legacy-tool .pair + .card,
+body.legacy-tool .panel + .card{margin-top:14px;}
+body.legacy-tool .card.main-card{border-color:var(--line);box-shadow:var(--shadow-sm);}
+body.legacy-tool .card-title{
+  display:flex;align-items:center;gap:8px;margin-bottom:11px;
+  font-size:12.5px;font-weight:850;color:var(--ink);
+}
+body.legacy-tool .card-title span{font-size:12px;font-weight:850;}
+body.legacy-tool .card-title em{margin-left:auto;font-style:normal;font-size:9px;font-weight:750;color:var(--faint);}
+body.legacy-tool .top-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
+body.legacy-tool .top-bar h2{font-size:16px;font-weight:850;letter-spacing:-.02em;margin:0;}
+
+/* ---------- 输入 ---------- */
+body.legacy-tool textarea,
+body.legacy-tool input[type="text"],
+body.legacy-tool input[type="number"],
+body.legacy-tool input[type="search"],
+body.legacy-tool select{
+  width:100%;border:1px solid var(--line);border-radius:12px;
+  background:var(--bg-2);color:var(--ink);box-shadow:none;outline:none;
+  font-family:inherit;font-size:12.5px;transition:border-color .2s,box-shadow .2s,background .2s;
+}
+body.legacy-tool textarea{
+  padding:13px 14px;line-height:1.7;resize:vertical;
+  font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;font-size:11.5px;
+}
+body.legacy-tool input[type="text"],
+body.legacy-tool input[type="number"],
+body.legacy-tool input[type="search"],
+body.legacy-tool select{height:40px;padding:0 11px;}
+body.legacy-tool textarea:focus,
+body.legacy-tool input:focus,
+body.legacy-tool select:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft);}
+body.legacy-tool input::placeholder,
+body.legacy-tool textarea::placeholder{color:var(--faint);opacity:.92;}
+body.legacy-tool select{
+  appearance:none;-webkit-appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--faint) 50%),linear-gradient(135deg,var(--faint) 50%,transparent 50%);
+  background-position:calc(100% - 15px) 17px,calc(100% - 10px) 17px;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:30px;
+}
+body.legacy-tool textarea[readonly]{background:var(--surface-2);color:var(--muted);}
+
+/* ---------- 按钮 ---------- */
+body.legacy-tool .btn,
+body.legacy-tool .btns button,
+body.legacy-tool .actions button,
+body.legacy-tool .actions-row button,
+body.legacy-tool .entry-ops button,
+body.legacy-tool .note-ops button,
+body.legacy-tool .modal-actions button,
+body.legacy-tool .sheet-actions button{
+  position:relative;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  min-height:41px;padding:0 14px;border-radius:12px;border:1px solid var(--line);
+  background:var(--surface-2);color:var(--ink-2);font-size:11px;font-weight:800;
+  box-shadow:none;transition:transform .16s var(--ease),background .2s,color .2s,border-color .2s,box-shadow .2s;
+  overflow:hidden;
+}
+body.legacy-tool .btn:active,
+body.legacy-tool .btns button:active,
+body.legacy-tool .actions button:active,
+body.legacy-tool .actions-row button:active,
+body.legacy-tool .entry-ops button:active,
+body.legacy-tool .note-ops button:active{transform:scale(.96);}
+body.legacy-tool .btn.primary,
+body.legacy-tool .btns .primary,
+body.legacy-tool .actions .primary,
+body.legacy-tool .actions-row .primary,
+body.legacy-tool .modal-actions .primary,
+body.legacy-tool .sheet-actions .primary,
+body.legacy-tool button.primary{
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  border-color:transparent;color:var(--on-accent);
+  box-shadow:0 10px 22px -14px var(--accent-soft-2),inset 0 1px 0 rgba(255,255,255,.22);
+}
+body.legacy-tool .btn.ghost,
+body.legacy-tool .btns .ghost,
+body.legacy-tool .actions .ghost,
+body.legacy-tool .actions-row .ghost,
+body.legacy-tool .secondary,
+body.legacy-tool .btn-import.secondary,
+body.legacy-tool .btns .secondary{
+  background:transparent;border-color:var(--line);color:var(--muted);box-shadow:none;
+}
+body.legacy-tool .btn.danger,
+body.legacy-tool .actions .danger,
+body.legacy-tool .actions-row .danger{
+  background:var(--bad-soft);border-color:transparent;color:var(--bad);box-shadow:none;
+}
+body.legacy-tool .btn-import{display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+body.legacy-tool button:disabled{opacity:.42;pointer-events:none;}
+
+/* ---------- 分段 / tabs ---------- */
+body.legacy-tool .tabs{
+  display:flex;gap:4px;overflow-x:auto;padding:4px;border:1px solid var(--line);
+  border-radius:14px;background:var(--bg-2);scrollbar-width:none;
+}
+body.legacy-tool .tabs::-webkit-scrollbar{display:none;}
+body.legacy-tool .tabs .tab{
+  flex:0 0 auto;height:35px;padding:0 12px;border:0;border-radius:10px;
+  background:transparent;color:var(--muted);font-size:11px;font-weight:800;white-space:nowrap;
+  transition:background .2s,color .2s,transform .16s;
+}
+body.legacy-tool .tabs .tab.on,
+body.legacy-tool .tabs .tab.active{
+  background:var(--surface-solid);color:var(--ink);box-shadow:0 4px 12px -8px rgba(0,0,0,.5);
+}
+body.legacy-tool .tabs .tab:active{transform:scale(.96);}
+body.legacy-tool .segmented-control{
+  position:relative;display:flex;padding:4px;border:1px solid var(--line);
+  border-radius:14px;background:var(--bg-2);box-shadow:none;backdrop-filter:none;
+}
+body.legacy-tool .segmented-control .slider{
+  background:var(--surface-solid) !important;border-radius:10px;
+  box-shadow:0 4px 12px -8px rgba(0,0,0,.5) !important;
+}
+body.legacy-tool .segmented-control .tab{
+  position:relative;z-index:2;height:35px;border-radius:10px;color:var(--muted);
+  font-size:11px;font-weight:800;background:transparent;border:0;
+}
+body.legacy-tool .segmented-control .tab.active{color:var(--ink);}
+
+/* ---------- 统计 / 状态 ---------- */
+body.legacy-tool .stats,
+body.legacy-tool .stat{
+  display:inline-flex;align-items:center;gap:4px;padding:5px 9px;border-radius:8px;
+  background:var(--surface-2);border:1px solid var(--line);
+  color:var(--muted);font-size:9px;font-weight:750;
+}
+body.legacy-tool .stat-chips{display:flex;flex-wrap:wrap;gap:6px;}
+body.legacy-tool .stat-chip{
+  background:var(--surface-2) !important;border:1px solid var(--line) !important;
+  border-radius:9px;color:var(--muted);
+}
+body.legacy-tool .stat-chip b{color:var(--ink);}
+body.legacy-tool .status,
+body.legacy-tool .msg{
+  border-radius:10px;font-size:10px;font-weight:750;
+  background:var(--surface-2);border:1px solid var(--line);color:var(--muted);
+}
+body.legacy-tool .status:empty,
+body.legacy-tool .msg:empty{display:none;}
+body.legacy-tool .hint,
+body.legacy-tool .sub{
+  color:var(--faint);font-size:10.5px;line-height:1.65;font-weight:600;
+}
+body.legacy-tool .muted{color:var(--muted);}
+body.legacy-tool .ok{color:var(--ok);}
+body.legacy-tool .err{color:var(--bad);}
+
+/* ---------- 勾选 ---------- */
+body.legacy-tool .chk,
+body.legacy-tool .chk-group label,
+body.legacy-tool .options label{
+  display:inline-flex;align-items:center;gap:7px;color:var(--muted);
+  font-size:11px;font-weight:700;
+}
+body.legacy-tool .chk input,
+body.legacy-tool .options input[type="checkbox"]{
+  width:16px;height:16px;accent-color:var(--accent);border-radius:4px;
+}
+body.legacy-tool .options{display:flex;flex-wrap:wrap;gap:12px;}
+body.legacy-tool .btns,
+body.legacy-tool .actions{display:flex;flex-wrap:wrap;gap:7px;}
+
+/* ---------- 对比 / 输出 ---------- */
+body.legacy-tool .pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+body.legacy-tool .tx{min-height:140px;}
+body.legacy-tool .diff{
+  border:1px solid var(--line);border-radius:16px;background:var(--surface);
+  box-shadow:var(--shadow-sm);overflow:hidden;
+}
+body.legacy-tool .dline{border-bottom:1px solid var(--line);font-size:11px;}
+body.legacy-tool .dline:last-child{border-bottom:0;}
+body.legacy-tool .dline.same{background:transparent;}
+body.legacy-tool .dline.add{background:var(--ok-soft);}
+body.legacy-tool .dline.del{background:var(--bad-soft);}
+body.legacy-tool .out,
+body.legacy-tool .preview,
+body.legacy-tool .result{
+  background:var(--bg-2) !important;border:1px solid var(--line) !important;
+  border-radius:14px;color:var(--ink);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:11px;line-height:1.7;
+}
+body.legacy-tool .preview{min-height:110px;}
+body.legacy-tool .empty{color:var(--faint);}
+
+/* ---------- 便签 / 日志 / 抽签 ---------- */
+body.legacy-tool .note,
+body.legacy-tool .entry{
+  background:var(--surface-2);border:1px solid var(--line);border-radius:14px;
+  color:var(--ink);
+}
+body.legacy-tool .note-text,
+body.legacy-tool .entry-text{color:var(--ink);}
+body.legacy-tool .note-top,
+body.legacy-tool .entry-top,
+body.legacy-tool .entry-time{color:var(--faint);font-size:9px;}
+body.legacy-tool .mood-tag,
+body.legacy-tool .chip{
+  background:var(--surface-2);border:1px solid var(--line);color:var(--muted);
+  border-radius:999px;font-size:10px;
+}
+body.legacy-tool .chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+body.legacy-tool .heat,
+body.legacy-tool .trend,
+body.legacy-tool .donut,
+body.legacy-tool .ring{color:var(--accent);}
+body.legacy-tool .legend{color:var(--muted);font-size:10px;}
+body.legacy-tool .result{
+  color:var(--accent);font-weight:900;text-align:center;
+  background:var(--accent-soft) !important;border-color:var(--accent-soft-2) !important;
+}
+body.legacy-tool .modal-box,
+body.legacy-tool .sheet-box{
+  background:var(--surface-solid);border:1px solid var(--line);border-radius:22px;
+  box-shadow:var(--shadow-lg);color:var(--ink);
+}
+body.legacy-tool .fab{
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  color:var(--on-accent);box-shadow:0 12px 28px -12px var(--accent-soft-2);
+}
+
+/* ---------- 动画 ---------- */
+@keyframes tsRise{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+@keyframes tsCard{from{opacity:0;transform:translateY(10px) scale(.996);}to{opacity:1;transform:none;}}
+body.legacy-tool .card{animation:tsCard .42s var(--ease) both;}
+body.legacy-tool .card:nth-of-type(2){animation-delay:.04s;}
+body.legacy-tool .card:nth-of-type(3){animation-delay:.08s;}
+body.legacy-tool .card:nth-of-type(4){animation-delay:.12s;}
+@media (prefers-reduced-motion:reduce){
+  body.legacy-tool .card,
+  body.legacy-tool .ts-head{animation:none !important;}
+}
+
+@media (max-width:640px){
+  body.legacy-tool{padding:14px 12px 46px;}
+  body.legacy-tool .tool-head h1{font-size:25px;}
+  body.legacy-tool .tool-head p{font-size:10.5px;}
+  body.legacy-tool .card{padding:14px;border-radius:20px;}
+  body.legacy-tool .pair{grid-template-columns:1fr;}
+  body.legacy-tool .btns button,
+  body.legacy-tool .actions button,
+  body.legacy-tool .actions-row button{flex:1 1 auto;}
+}
+@media (max-width:380px){
+  body.legacy-tool .tool-head h1{font-size:23px;}
+  body.legacy-tool .tool-head-icon{width:42px;height:42px;border-radius:13px;}
+  body.legacy-tool .tool-head-icon .ic{width:21px;height:21px;}
+}

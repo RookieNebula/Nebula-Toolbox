@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-accent="indigo" data-motion="on" data-fx="on">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f3f4f7">
+<title>批量替换 · Nebula</title>
+<link rel="stylesheet" href="ui-kit.css">
+<link rel="stylesheet" href="tool-page.css">
+<link rel="stylesheet" href="plugin-tools.css">
+</head>
+<body>
+
+<main class="tool-shell">
+  <div id="head"></div>
+
+  <section class="panel">
+    <div class="panel-head"><svg class="ic"><use href="#i-upload"/></svg><b>1 · 源文本</b><span class="panel-sub" id="srcState">本地处理</span></div>
+    <div class="pl-drop" id="drop">
+      <svg class="ic"><use href="#i-folder"/></svg>
+      <b>点击选择文件，或拖进来</b>
+      <small>导入后记住位置，导出时可覆盖原文件</small>
+    </div>
+    <div class="pl-src" id="src" hidden><svg class="ic"><use href="#i-file"/></svg><span id="srcName"></span></div>
+    <textarea class="editor" id="input" spellcheck="false" placeholder="粘贴要处理的文本…"></textarea>
+    <div class="nb-count-row"><div class="nb-bar" id="ibar"><i></i></div><span class="nb-count" id="icount">0 / 50,000 字</span></div>
+    <div class="editor-bar">
+      <button class="mini-btn" id="pick" type="button"><svg class="ic"><use href="#i-upload"/></svg>导入文件</button>
+      <button class="mini-btn" id="sample" type="button"><svg class="ic"><use href="#i-spark"/></svg>填入示例</button>
+      <span class="spacer"></span>
+      <button class="mini-btn ghost" id="clear" type="button"><svg class="ic"><use href="#i-trash"/></svg>清空</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><svg class="ic"><use href="#i-refresh"/></svg><b>2 · 查找规则</b><span class="panel-sub" id="modeLabel">替换</span></div>
+    <div class="pl-tabs" style="margin-bottom:12px">
+      <button class="on" type="button" data-mode="replace"><svg class="ic"><use href="#i-refresh"/></svg>替换</button>
+      <button type="button" data-mode="extract"><svg class="ic"><use href="#i-filter"/></svg>提取匹配</button>
+    </div>
+    <div class="pl-fields" style="margin-top:0">
+      <div class="pl-field full">
+        <label>查找内容</label>
+        <input type="text" id="find" placeholder="要查找的文字或正则" spellcheck="false">
+      </div>
+      <div class="pl-field full" id="replaceWrap">
+        <label>替换为</label>
+        <input type="text" id="replace" placeholder="留空表示删除匹配内容" spellcheck="false">
+        <span class="hint">正则模式下支持 $1、$2 引用分组。</span>
+      </div>
+    </div>
+    <div class="pl-opts" style="margin-top:10px">
+      <label class="pl-opt"><input type="checkbox" id="useRe"><span><b>正则模式</b><small>支持分组和字符类</small></span></label>
+      <label class="pl-opt"><input type="checkbox" id="caseSensitive"><span><b>区分大小写</b><small>默认忽略大小写</small></span></label>
+      <label class="pl-opt" id="uniqWrap" hidden><input type="checkbox" id="uniq" checked><span><b>提取结果去重</b><small>相同匹配只留一条</small></span></label>
+      <label class="pl-opt"><input type="checkbox" id="lineNo"><span><b>加行号</b><small>结果前加 01、02…</small></span></label>
+    </div>
+    <div class="pl-run">
+      <button class="btn btn-primary" id="run" type="button"><svg class="ic"><use href="#i-play"/></svg>执行</button>
+      <button class="btn btn-ghost" id="undo" type="button" disabled><svg class="ic"><use href="#i-refresh"/></svg>撤销</button>
+    </div>
+    <div class="pl-stats">
+      <div><b id="stMatch">0</b><span>匹配</span></div>
+      <div class="good"><b id="stOut">0</b><span>输出字符</span></div>
+      <div><b id="stLines">0</b><span>行数</span></div>
+      <div><b id="stMode">替换</b><span>模式</span></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="pl-out-head"><svg class="ic"><use href="#i-list"/></svg><b>处理结果</b><span class="kv" id="outMeta">等待执行</span></div>
+    <textarea class="editor" id="output" readonly placeholder="处理结果会显示在这里…"></textarea>
+    <div class="nb-count-row"><div class="nb-bar" id="obar"><i></i></div><span class="nb-count" id="ocount">0 / 50,000 字</span></div>
+    <div class="pl-actions">
+      <button class="btn btn-ghost" id="copy" type="button"><svg class="ic"><use href="#i-copy"/></svg>复制</button>
+      <button class="btn btn-primary" id="export" type="button"><svg class="ic"><use href="#i-download"/></svg>导出…</button>
+    </div>
+  </section>
+</main>
+
+<script src="lib-io.js"></script>
+<script src="ui-kit.js"></script>
+<script src="app-core.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  $('head').innerHTML = NB.toolHead({
+    icon: '<svg class="ic"><use href="#i-refresh"/></svg>',
+    kicker: 'BATCH REPLACE',
+    title: '批量替换',
+    sub: '普通文字或正则替换，也可以直接提取所有匹配项。改完可导出，导入的文件支持覆盖原位置。',
+    tags: ['正则', '提取', '可覆盖']
+  }) + NB.sprite();
+  NB.bindTheme();
+  NB.counter($('input'), $('icount'));
+  NB.counter($('output'), $('ocount'));
+
+  var imported = '', mode = 'replace', undoText = '';
+
+  function markSource(name, size) {
+    imported = name || '';
+    $('src').hidden = !name;
+    if (name) {
+      $('srcName').textContent = '已导入 ' + name + (size ? ' · ' + size : '') + '（可覆盖原文件）';
+      $('srcState').textContent = '已导入';
+    } else {
+      $('srcState').textContent = '本地处理';
+    }
+  }
+  function defaultName() {
+    var last = NB.lastImport();
+    if (imported) return NB.stripExt(imported);
+    if (last && last.name) return NB.stripExt(last.name);
+    return mode === 'extract' ? '提取结果' : '替换结果';
+  }
+
+  function pick() {
+    NB.upload({
+      accept: '.txt,.csv,.log,.tsv,text/plain,text/csv',
+      onText: function (text, f) {
+        $('input').value = NB.guard(text).text;
+        $('input').dispatchEvent(new Event('input', { bubbles: true }));
+        markSource(f.name, IO.fmtBytes(f.size));
+        NB.toast('已导入：' + f.name);
+      }
+    });
+  }
+  $('pick').addEventListener('click', pick);
+  $('drop').addEventListener('click', pick);
+  ['dragover', 'dragenter'].forEach(function (e) { $('drop').addEventListener(e, function (ev) { ev.preventDefault(); $('drop').classList.add('drag'); }); });
+  ['dragleave', 'drop'].forEach(function (e) { $('drop').addEventListener(e, function (ev) { ev.preventDefault(); $('drop').classList.remove('drag'); }); });
+  $('drop').addEventListener('drop', function (ev) {
+    var f = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0];
+    if (!f) return;
+    NB.importFile(f, {
+      onText: function (text, file) {
+        $('input').value = NB.guard(text).text;
+        $('input').dispatchEvent(new Event('input', { bubbles: true }));
+        markSource(file.name, IO.fmtBytes(file.size));
+        NB.toast('已导入：' + file.name);
+      }
+    });
+  });
+
+  $('sample').addEventListener('click', function () {
+    $('input').value = '15800000001----未查----A1B2\n15800000002----已查----C3D4\n15800000003----未查----E5F6';
+    $('input').dispatchEvent(new Event('input', { bubbles: true }));
+    $('find').value = '未查';
+    $('replace').value = '待核';
+    run();
+  });
+  $('clear').addEventListener('click', function () {
+    $('input').value = ''; $('output').value = '';
+    $('input').dispatchEvent(new Event('input', { bubbles: true }));
+    $('output').dispatchEvent(new Event('input', { bubbles: true }));
+    markSource('');
+    $('stMatch').textContent = $('stOut').textContent = $('stLines').textContent = '0';
+    $('outMeta').textContent = '等待执行';
+    $('undo').disabled = true;
+    IO.clearFx('清空成功', '输入与结果已移除');
+  });
+
+  document.querySelectorAll('.pl-tabs button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      mode = b.getAttribute('data-mode');
+      document.querySelectorAll('.pl-tabs button').forEach(function (x) { x.classList.toggle('on', x === b); });
+      $('replaceWrap').hidden = (mode === 'extract');
+      $('uniqWrap').hidden = (mode !== 'extract');
+      $('modeLabel').textContent = mode === 'extract' ? '提取匹配' : '替换';
+      $('stMode').textContent = mode === 'extract' ? '提取' : '替换';
+      run();
+    });
+  });
+
+  function buildRe(global) {
+    var find = $('find').value;
+    if (!find) return null;
+    var caseSensitive = $('caseSensitive').checked;
+    var flags = (global ? 'g' : '') + (caseSensitive ? '' : 'i');
+    if ($('useRe').checked) return new RegExp(find, flags);
+    return new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
+  }
+
+  function run() {
+    var text = $('input').value;
+    if (!text) { NB.toast('先输入或导入文本'); return; }
+    var find = $('find').value;
+    if (!find) { NB.toast('先填写查找内容'); return; }
+    var re;
+    try { re = buildRe(true); } catch (e) { NB.toast('正则无效：' + e.message); return; }
+
+    var result = '';
+    if (mode === 'replace') {
+      var matches = text.match(re);
+      var n = matches ? matches.length : 0;
+      undoText = $('output').value;
+      if ($('useRe').checked) {
+        result = text.replace(re, $('replace').value);
+      } else {
+        var rep = $('replace').value;
+        result = text.replace(re, function () { return rep; });
+      }
+      $('stMatch').textContent = NB.fmtNum(n);
+      $('outMeta').textContent = '替换 ' + NB.fmtNum(n) + ' 处';
+    } else {
+      var list = [], m;
+      re.lastIndex = 0;
+      var guard = 0;
+      while ((m = re.exec(text)) !== null && guard++ < 50000) {
+        list.push(m[0]);
+        if (m[0] === '') re.lastIndex++;
+      }
+      if ($('uniq').checked) {
+        var seen = Object.create(null);
+        list = list.filter(function (x) { if (seen[x]) return false; seen[x] = 1; return true; });
+      }
+      if ($('lineNo').checked) list = list.map(function (x, i) { return (i < 9 ? '0' + (i + 1) : '' + (i + 1)) + ' ' + x; });
+      result = list.join('\n');
+      undoText = $('output').value;
+      $('stMatch').textContent = NB.fmtNum(list.length);
+      $('outMeta').textContent = '提取 ' + NB.fmtNum(list.length) + ' 条';
+    }
+
+    $('output').value = NB.guard(result).text;
+    $('output').dispatchEvent(new Event('input', { bubbles: true }));
+    $('stOut').textContent = NB.fmtNum(result.length);
+    $('stLines').textContent = NB.fmtNum(result ? result.split('\n').length : 0);
+    $('undo').disabled = !undoText;
+    NB.haptic(6);
+  }
+  $('run').addEventListener('click', run);
+  $('undo').addEventListener('click', function () {
+    if (!undoText) return;
+    $('output').value = undoText;
+    $('output').dispatchEvent(new Event('input', { bubbles: true }));
+    undoText = '';
+    $('undo').disabled = true;
+    NB.toast('已撤销到上一次结果');
+  });
+
+  $('copy').addEventListener('click', function () {
+    var t = $('output').value;
+    if (!t) { NB.toast('还没有结果'); return; }
+    IO.copy(t).then(function (ok) { NB.toast(ok ? '已复制' : '复制失败'); });
+  });
+  $('export').addEventListener('click', function () {
+    var t = $('output').value;
+    if (!t) { NB.toast('还没有结果'); return; }
+    NB.exportDialog({ text: t, name: defaultName(), ext: 'txt', meta: $('outMeta').textContent });
+  });
+})();
+</script>
+</body>
+</html>

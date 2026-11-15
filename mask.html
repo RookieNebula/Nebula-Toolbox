@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-accent="indigo" data-motion="on" data-fx="on">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f3f4f7">
+<title>数据脱敏 · Nebula</title>
+<link rel="stylesheet" href="ui-kit.css">
+<link rel="stylesheet" href="tool-page.css">
+<link rel="stylesheet" href="plugin-tools.css">
+</head>
+<body>
+
+<main class="tool-shell">
+  <div id="head"></div>
+
+  <section class="panel">
+    <div class="panel-head"><svg class="ic"><use href="#i-upload"/></svg><b>1 · 待脱敏文本</b><span class="panel-sub" id="srcState">本地处理</span></div>
+    <div class="pl-drop" id="drop">
+      <svg class="ic"><use href="#i-folder"/></svg>
+      <b>点击选择文件，或拖进来</b>
+      <small>手机号、邮箱、身份证、QQ / 球球号会自动识别</small>
+    </div>
+    <div class="pl-src" id="src" hidden><svg class="ic"><use href="#i-file"/></svg><span id="srcName"></span></div>
+    <textarea class="editor" id="input" spellcheck="false" placeholder="粘贴要脱敏的账号数据，一行一条…"></textarea>
+    <div class="nb-count-row"><div class="nb-bar" id="ibar"><i></i></div><span class="nb-count" id="icount">0 / 50,000 字</span></div>
+    <div class="editor-bar">
+      <button class="mini-btn" id="pick" type="button"><svg class="ic"><use href="#i-upload"/></svg>导入文件</button>
+      <button class="mini-btn" id="sample" type="button"><svg class="ic"><use href="#i-spark"/></svg>填入示例</button>
+      <span class="spacer"></span>
+      <button class="mini-btn ghost" id="clear" type="button"><svg class="ic"><use href="#i-trash"/></svg>清空</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><svg class="ic"><use href="#i-shield"/></svg><b>2 · 脱敏规则</b><span class="panel-sub">替换为星号</span></div>
+    <div class="pl-opts">
+      <label class="pl-opt"><input type="checkbox" id="rPhone" checked><span><b>手机号</b><small>保留前 3 后 4 位</small></span></label>
+      <label class="pl-opt"><input type="checkbox" id="rId" checked><span><b>身份证号</b><small>保留前 4 后 4 位</small></span></label>
+      <label class="pl-opt"><input type="checkbox" id="rEmail" checked><span><b>邮箱</b><small>保留首字母与域名</small></span></label>
+      <label class="pl-opt"><input type="checkbox" id="rQq" checked><span><b>QQ / 球球号</b><small>5–11 位纯数字，保留 2 / 2</small></span></label>
+    </div>
+
+    <div class="pl-fields">
+      <div class="pl-field full">
+        <label>自定义正则（可选，和上面规则一起执行）</label>
+        <input type="text" id="customRe" placeholder="例如：BOB_[A-Za-z0-9]{6}" spellcheck="false">
+        <span class="hint">留空则不执行；匹配到的内容会按“保留位数”打码。</span>
+      </div>
+      <div class="pl-field">
+        <label>自定义：保留前几位</label>
+        <input type="number" id="customHead" value="2" min="0" max="20" inputmode="numeric">
+      </div>
+      <div class="pl-field">
+        <label>自定义：保留后几位</label>
+        <input type="number" id="customTail" value="2" min="0" max="20" inputmode="numeric">
+      </div>
+      <div class="pl-field">
+        <label>打码字符</label>
+        <select id="maskChar"><option value="*">星号 *</option><option value="×">叉号 ×</option><option value="#">井号 #</option></select>
+      </div>
+      <div class="pl-field">
+        <label>只保留这些行（关键字，可选）</label>
+        <input type="text" id="onlyLines" placeholder="例如：未查|已查" maxlength="60">
+      </div>
+    </div>
+
+    <div class="pl-run">
+      <button class="btn btn-primary" id="run" type="button"><svg class="ic"><use href="#i-shield"/></svg>开始脱敏</button>
+      <button class="btn btn-ghost" id="reset" type="button"><svg class="ic"><use href="#i-refresh"/></svg>恢复默认</button>
+    </div>
+    <div class="pl-stats">
+      <div class="warn"><b id="stPhone">0</b><span>手机号</span></div>
+      <div class="warn"><b id="stId">0</b><span>身份证</span></div>
+      <div class="warn"><b id="stEmail">0</b><span>邮箱</span></div>
+      <div class="warn"><b id="stQq">0</b><span>QQ / 球球</span></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="pl-out-head"><svg class="ic"><use href="#i-list"/></svg><b>脱敏结果</b><span class="kv" id="outMeta">等待处理</span></div>
+    <textarea class="editor" id="output" readonly placeholder="脱敏后的文本会显示在这里…"></textarea>
+    <div class="nb-count-row"><div class="nb-bar" id="obar"><i></i></div><span class="nb-count" id="ocount">0 / 50,000 字</span></div>
+    <div class="pl-actions">
+      <button class="btn btn-ghost" id="copy" type="button"><svg class="ic"><use href="#i-copy"/></svg>复制</button>
+      <button class="btn btn-primary" id="export" type="button"><svg class="ic"><use href="#i-download"/></svg>导出…</button>
+    </div>
+    <div class="note-line" style="margin-top:11px"><svg class="ic"><use href="#i-shield"/></svg><span>脱敏只在本机进行。导出前请确认结果，避免把原文误发出去。</span></div>
+  </section>
+</main>
+
+<script src="lib-io.js"></script>
+<script src="ui-kit.js"></script>
+<script src="app-core.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  $('head').innerHTML = NB.toolHead({
+    icon: '<svg class="ic"><use href="#i-shield"/></svg>',
+    kicker: 'DATA MASKING',
+    title: '数据脱敏',
+    sub: '把手机号、邮箱、身份证、QQ / 球球号批量打码，支持自定义正则。适合导出前做一次安全检查。',
+    tags: ['隐私', '正则', '本地']
+  }) + NB.sprite();
+  NB.bindTheme();
+  NB.counter($('input'), $('icount'));
+  NB.counter($('output'), $('ocount'));
+
+  var imported = '';
+  var counts = { phone: 0, id: 0, email: 0, qq: 0 };
+
+  function markSource(name, size) {
+    imported = name || '';
+    $('src').hidden = !name;
+    if (name) {
+      $('srcName').textContent = '已导入 ' + name + (size ? ' · ' + size : '') + '（可覆盖原文件）';
+      $('srcState').textContent = '已导入';
+    } else {
+      $('srcState').textContent = '本地处理';
+    }
+  }
+  function defaultName() {
+    var last = NB.lastImport();
+    if (imported) return NB.stripExt(imported);
+    if (last && last.name) return NB.stripExt(last.name);
+    return '脱敏结果';
+  }
+
+  function pick() {
+    NB.upload({
+      accept: '.txt,.csv,.log,.tsv,text/plain,text/csv',
+      onText: function (text, f) {
+        $('input').value = NB.guard(text).text;
+        $('input').dispatchEvent(new Event('input', { bubbles: true }));
+        markSource(f.name, IO.fmtBytes(f.size));
+        run();
+      }
+    });
+  }
+  $('pick').addEventListener('click', pick);
+  $('drop').addEventListener('click', pick);
+  ['dragover', 'dragenter'].forEach(function (e) { $('drop').addEventListener(e, function (ev) { ev.preventDefault(); $('drop').classList.add('drag'); }); });
+  ['dragleave', 'drop'].forEach(function (e) { $('drop').addEventListener(e, function (ev) { ev.preventDefault(); $('drop').classList.remove('drag'); }); });
+  $('drop').addEventListener('drop', function (ev) {
+    var f = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0];
+    if (!f) return;
+    NB.importFile(f, {
+      onText: function (text, file) {
+        $('input').value = NB.guard(text).text;
+        $('input').dispatchEvent(new Event('input', { bubbles: true }));
+        markSource(file.name, IO.fmtBytes(file.size));
+        run();
+      }
+    });
+  });
+
+  $('sample').addEventListener('click', function () {
+    $('input').value = [
+      '15800000001----A1B2----小明----13812345678@qq.com----未查',
+      '15800000002----C3D4----阿强----未查',
+      '110101199001011234----静静----已查',
+      'QQ 12345678 / 球球号 87654321',
+      'BOB_A1B2C3----待核'
+    ].join('\n');
+    $('input').dispatchEvent(new Event('input', { bubbles: true }));
+    run();
+  });
+  $('clear').addEventListener('click', function () {
+    $('input').value = '';
+    $('input').dispatchEvent(new Event('input', { bubbles: true }));
+    $('output').value = '';
+    $('output').dispatchEvent(new Event('input', { bubbles: true }));
+    markSource('');
+    counts = { phone: 0, id: 0, email: 0, qq: 0 };
+    ['stPhone', 'stId', 'stEmail', 'stQq'].forEach(function (id) { $(id).textContent = '0'; });
+    $('outMeta').textContent = '等待处理';
+    IO.clearFx('清空成功', '输入与结果已移除');
+  });
+
+  function maskKeep(s, head, tail, ch) {
+    s = String(s);
+    if (s.length <= head + tail) return ch.repeat(Math.max(1, s.length));
+    return s.slice(0, head) + ch.repeat(s.length - head - tail) + s.slice(s.length - tail);
+  }
+
+  function run() {
+    var text = $('input').value;
+    if (!text.trim()) { NB.toast('先粘贴或导入内容'); return; }
+    var ch = $('maskChar').value;
+    var only = $('onlyLines').value.trim();
+    counts = { phone: 0, id: 0, email: 0, qq: 0 };
+    var out = text;
+
+    if ($('rId').checked) {
+      out = out.replace(/(^|\D)(\d{17}[\dXx])(?!\d)/g, function (m, p1, p2) {
+        counts.id++; return p1 + maskKeep(p2, 4, 4, ch);
+      });
+    }
+    if ($('rPhone').checked) {
+      out = out.replace(/(^|\D)(1[3-9]\d{9})(?!\d)/g, function (m, p1, p2) {
+        counts.phone++; return p1 + maskKeep(p2, 3, 4, ch);
+      });
+    }
+    if ($('rEmail').checked) {
+      out = out.replace(/([A-Za-z0-9._%+\-]+)@([A-Za-z0-9.\-]+\.[A-Za-z]{2,})/g, function (m, local, domain) {
+        counts.email++;
+        var keep = local.slice(0, 1);
+        return keep + ch.repeat(Math.max(3, local.length - 1)) + '@' + domain;
+      });
+    }
+    if ($('rQq').checked) {
+      out = out.replace(/(^|\D)(\d{5,11})(?!\d)/g, function (m, p1, p2) {
+        counts.qq++; return p1 + maskKeep(p2, 2, 2, ch);
+      });
+    }
+    var custom = $('customRe').value.trim();
+    if (custom) {
+      try {
+        var head = Math.max(0, parseInt($('customHead').value, 10) || 0);
+        var tail = Math.max(0, parseInt($('customTail').value, 10) || 0);
+        var re = new RegExp(custom, 'g');
+        out = out.replace(re, function (m) { return maskKeep(m, head, tail, ch); });
+      } catch (e) {
+        NB.toast('自定义正则无效：' + e.message);
+      }
+    }
+
+    if (only) {
+      var kws = only.split('|').map(function (s) { return s.trim(); }).filter(Boolean);
+      out = out.split('\n').filter(function (line) {
+        return !kws.length || kws.some(function (k) { return line.indexOf(k) >= 0; });
+      }).join('\n');
+    }
+
+    $('output').value = NB.guard(out).text;
+    $('output').dispatchEvent(new Event('input', { bubbles: true }));
+    $('stPhone').textContent = NB.fmtNum(counts.phone);
+    $('stId').textContent = NB.fmtNum(counts.id);
+    $('stEmail').textContent = NB.fmtNum(counts.email);
+    $('stQq').textContent = NB.fmtNum(counts.qq);
+    var total = counts.phone + counts.id + counts.email + counts.qq;
+    $('outMeta').textContent = total + ' 处已打码';
+    NB.toast('完成：' + total + ' 处');
+    NB.haptic(8);
+  }
+  $('run').addEventListener('click', run);
+  $('reset').addEventListener('click', function () {
+    ['rPhone', 'rId', 'rEmail', 'rQq'].forEach(function (id) { $(id).checked = true; });
+    $('customRe').value = '';
+    $('customHead').value = 2;
+    $('customTail').value = 2;
+    $('maskChar').value = '*';
+    $('onlyLines').value = '';
+    run();
+  });
+
+  $('copy').addEventListener('click', function () {
+    var t = $('output').value;
+    if (!t) { NB.toast('还没有结果'); return; }
+    IO.copy(t).then(function (ok) { NB.toast(ok ? '已复制' : '复制失败'); });
+  });
+  $('export').addEventListener('click', function () {
+    var t = $('output').value;
+    if (!t) { NB.toast('还没有结果'); return; }
+    NB.exportDialog({ text: t, name: defaultName(), ext: 'txt', meta: $('outMeta').textContent });
+  });
+
+  $('input').addEventListener('input', NB.debounce(function () {
+    if ($('input').value.trim()) run();
+  }, 600));
+})();
+</script>
+</body>
+</html>

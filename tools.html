@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-accent="indigo" data-motion="on" data-fx="on">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f3f4f7">
+<title>去重文档工坊 · Nebula</title>
+<link rel="stylesheet" href="ui-kit.css">
+<link rel="stylesheet" href="tool-page.css">
+<style>
+  .fw-tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:5px;background:var(--bg-2);border:1px solid var(--line);border-radius:16px;margin-bottom:4px;}
+  .fw-tabs button{height:40px;border-radius:11px;font-size:11.5px;font-weight:850;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:6px;transition:.2s var(--ease);}
+  .fw-tabs button .ic{width:15px;height:15px;}
+  .fw-tabs button.on{background:var(--surface-solid);color:var(--ink);box-shadow:0 6px 16px -10px rgba(0,0,0,.5);}
+  .fw-pane{display:none;}
+  .fw-pane.on{display:block;animation:fwIn .24s var(--ease);}
+  @keyframes fwIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  .dz{
+    position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;
+    padding:18px 14px;margin-bottom:12px;border-radius:16px;border:1.5px dashed var(--line-strong);
+    background:var(--bg-2);text-align:center;transition:.2s;
+  }
+  .dz .ic{width:25px;height:25px;color:var(--accent);opacity:.85;}
+  .dz b{font-size:11px;font-weight:850;margin-top:2px;}
+  .dz small{font-size:9px;color:var(--faint);font-weight:650;line-height:1.5;}
+  .dz.drag{border-color:var(--accent);background:var(--accent-soft);}
+  .dz-source{display:flex;align-items:center;gap:7px;margin-top:9px;padding:8px 11px;border-radius:10px;background:var(--accent-soft);color:var(--accent);font-size:9.5px;font-weight:800;}
+  .dz-source .ic{width:13px;height:13px;}
+  .dz-source span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+  .opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+  .opt-card{display:flex;align-items:center;gap:9px;padding:11px 12px;border-radius:12px;background:var(--bg-2);border:1px solid var(--line);cursor:pointer;min-width:0;}
+  .opt-card input{width:16px;height:16px;min-height:0;flex:none;accent-color:var(--accent);}
+  .opt-card span{min-width:0;}
+  .opt-card b{display:block;font-size:10px;font-weight:800;line-height:1.3;}
+  .opt-card small{display:block;margin-top:2px;font-size:8.5px;color:var(--faint);font-weight:650;line-height:1.4;}
+  .opt-card:has(input:checked){border-color:var(--accent-soft-2);background:var(--accent-soft);}
+
+  .run-row{display:flex;gap:8px;margin-top:13px;}
+  .run-row .btn{flex:1;--btn-h:46px;font-size:12.5px;border-radius:13px;}
+  .run-row .btn-primary{flex:1.5;}
+
+  .out-head{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
+  .out-head .kv{font-size:9.5px;color:var(--faint);font-weight:750;margin-left:auto;font-variant-numeric:tabular-nums;}
+  .stats-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:11px;}
+  .stats-strip div{padding:9px 7px;border-radius:11px;background:var(--bg-2);border:1px solid var(--line);text-align:center;}
+  .stats-strip b{display:block;font-size:15px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.15;}
+  .stats-strip span{display:block;margin-top:2px;font-size:8px;color:var(--faint);font-weight:750;}
+  .stats-strip .good b{color:var(--ok);}
+  .stats-strip .warn b{color:var(--warn);}
+
+  .codec-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+  .codec-grid .mini-btn{height:38px;font-size:10px;justify-content:flex-start;padding:0 11px;}
+  .codec-grid .mini-btn .ic{width:14px;height:14px;color:var(--accent);}
+  .codec-grid .wide{grid-column:1 / -1;}
+
+  .empty-out{color:var(--faint)!important;font-style:normal;}
+  @media (max-width:380px){
+    .opt-grid,.codec-grid{grid-template-columns:1fr;}
+    .stats-strip b{font-size:13px;}
+  }
+</style>
+</head>
+<body>
+
+<main class="tool-shell">
+  <div id="head"></div>
+
+  <div class="fw-tabs" role="tablist">
+    <button type="button" class="on" data-tab="dedupe" role="tab"><svg class="ic"><use href="#i-dedupe"/></svg>文本去重</button>
+    <button type="button" data-tab="codec" role="tab"><svg class="ic"><use href="#i-code"/></svg>编码解析</button>
+  </div>
+
+  <!-- ================= 文本去重 ================= -->
+  <section class="fw-pane on" id="pane-dedupe">
+    <div class="panel">
+      <div class="panel-head"><svg class="ic"><use href="#i-upload"/></svg><b>1 · 导入或粘贴</b><span class="panel-sub" id="srcState">本地处理</span></div>
+      <div class="dz" id="dropDedupe">
+        <svg class="ic"><use href="#i-folder"/></svg>
+        <b>点击选择文件，或拖进来</b>
+        <small>txt / csv / log / tsv · 自动识别编码 · ≤30MB</small>
+      </div>
+      <div class="dz-source" id="srcDedupe" hidden><svg class="ic"><use href="#i-file"/></svg><span id="srcDedupeName"></span></div>
+      <textarea class="editor" id="dedupe-in" spellcheck="false" placeholder="在这里粘贴含有重复内容的文本，一行一条…"></textarea>
+      <div class="nb-count-row"><div class="nb-bar" id="dbar"><i></i></div><span class="nb-count" id="dcount">0 / 50,000 字</span></div>
+      <div class="editor-bar">
+        <button class="mini-btn" id="pickDedupe" type="button"><svg class="ic"><use href="#i-upload"/></svg>导入文件</button>
+        <button class="mini-btn" id="sampleDedupe" type="button"><svg class="ic"><use href="#i-spark"/></svg>填入示例</button>
+        <span class="spacer"></span>
+        <button class="mini-btn ghost" id="clearDedupe" type="button"><svg class="ic"><use href="#i-trash"/></svg>清空</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><svg class="ic"><use href="#i-sliders"/></svg><b>2 · 去重规则</b><span class="panel-sub">按行处理</span></div>
+      <div class="opt-grid">
+        <label class="opt-card"><input type="checkbox" id="chkEmpty" checked><span><b>忽略空行</b><small>空行不进入结果</small></span></label>
+        <label class="opt-card"><input type="checkbox" id="chkTrim"><span><b>忽略首尾空格</b><small>比较时先去掉空格</small></span></label>
+        <label class="opt-card"><input type="checkbox" id="chkCase"><span><b>忽略大小写</b><small>A 与 a 视为同一行</small></span></label>
+        <label class="opt-card"><input type="checkbox" id="chkSort"><span><b>结果排序</b><small>按 Unicode 升序排列</small></span></label>
+      </div>
+      <div class="run-row">
+        <button class="btn btn-primary" id="runDedupe" type="button"><svg class="ic"><use href="#i-spark"/></svg>一键去重</button>
+        <button class="btn btn-ghost" id="undoDedupe" type="button" disabled><svg class="ic"><use href="#i-refresh"/></svg>撤销</button>
+      </div>
+      <div class="stats-strip">
+        <div><b id="stRaw">0</b><span>原始行</span></div>
+        <div class="good"><b id="stUniq">0</b><span>保留</span></div>
+        <div class="warn"><b id="stDup">0</b><span>重复</span></div>
+        <div><b id="stChars">0</b><span>字符</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="out-head">
+        <svg class="ic" style="width:17px;height:17px;color:var(--accent)"><use href="#i-list"/></svg>
+        <b style="font-size:12px;font-weight:850">3 · 去重结果</b>
+        <span class="kv" id="outMeta">等待处理</span>
+      </div>
+      <textarea class="editor" id="dedupe-out" readonly placeholder="去重后的结果会显示在这里…"></textarea>
+      <div class="nb-count-row"><div class="nb-bar" id="obar"><i></i></div><span class="nb-count" id="ocount">0 / 50,000 字</span></div>
+      <div class="action-bar">
+        <button class="btn btn-ghost" id="copyDedupe" type="button"><svg class="ic"><use href="#i-copy"/></svg>复制</button>
+        <button class="btn btn-primary" id="exportDedupe" type="button"><svg class="ic"><use href="#i-download"/></svg>导出…</button>
+      </div>
+      <div class="note-line" style="margin-top:11px"><svg class="ic"><use href="#i-shield"/></svg><span>所有内容只在本机处理。导出时可以改文件名；如果文件是刚导入的，还能直接覆盖原文件。</span></div>
+    </div>
+  </section>
+
+  <!-- ================= 编码解析 ================= -->
+  <section class="fw-pane" id="pane-codec">
+    <div class="panel">
+      <div class="panel-head"><svg class="ic"><use href="#i-code"/></svg><b>输入文本</b><span class="panel-sub" id="codecState">Base64 / URL / JSON</span></div>
+      <div class="dz" id="dropCodec">
+        <svg class="ic"><use href="#i-folder"/></svg>
+        <b>点击选择文件，或拖进来</b>
+        <small>转换在本地完成，不上传</small>
+      </div>
+      <div class="dz-source" id="srcCodec" hidden><svg class="ic"><use href="#i-file"/></svg><span id="srcCodecName"></span></div>
+      <textarea class="editor" id="codec-in" spellcheck="false" placeholder="输入文本或代码…"></textarea>
+      <div class="nb-count-row"><div class="nb-bar" id="cbar"><i></i></div><span class="nb-count" id="ccount">0 / 50,000 字</span></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><svg class="ic"><use href="#i-spark"/></svg><b>选择操作</b></div>
+      <div class="codec-grid">
+        <button class="mini-btn" data-act="b64e" type="button"><svg class="ic"><use href="#i-code"/></svg>Base64 编码</button>
+        <button class="mini-btn" data-act="b64d" type="button"><svg class="ic"><use href="#i-refresh"/></svg>Base64 解码</button>
+        <button class="mini-btn" data-act="urle" type="button"><svg class="ic"><use href="#i-arrow"/></svg>URL 编码</button>
+        <button class="mini-btn" data-act="urld" type="button"><svg class="ic"><use href="#i-arrow"/></svg>URL 解码</button>
+        <button class="mini-btn" data-act="html" type="button"><svg class="ic"><use href="#i-code"/></svg>HTML 实体转义</button>
+        <button class="mini-btn" data-act="json" type="button"><svg class="ic"><use href="#i-spark"/></svg>JSON 美化</button>
+        <button class="mini-btn wide" data-act="upper" type="button"><svg class="ic"><use href="#i-list"/></svg>转大写 / 清理空白</button>
+      </div>
+      <div class="out-head" style="margin-top:14px">
+        <svg class="ic" style="width:17px;height:17px;color:var(--accent)"><use href="#i-list"/></svg>
+        <b style="font-size:12px;font-weight:850">转换结果</b>
+        <span class="kv" id="codecMeta">等待操作</span>
+      </div>
+      <textarea class="editor" id="codec-out" readonly placeholder="结果会显示在这里…"></textarea>
+      <div class="nb-count-row"><div class="nb-bar" id="cobar"><i></i></div><span class="nb-count" id="cocount">0 / 50,000 字</span></div>
+      <div class="action-bar">
+        <button class="btn btn-ghost" id="copyCodec" type="button"><svg class="ic"><use href="#i-copy"/></svg>复制</button>
+        <button class="btn btn-primary" id="exportCodec" type="button"><svg class="ic"><use href="#i-download"/></svg>导出…</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="lib-io.js"></script>
+<script src="ui-kit.js"></script>
+<script src="app-core.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+
+  $('head').innerHTML = NB.toolHead({
+    icon: '<svg class="ic"><use href="#i-dedupe"/></svg>',
+    kicker: 'FILE WORKSHOP',
+    title: '去重文档工坊',
+    sub: '文本去重与编码解析。导入文件后可记住位置，导出时改个名字，勾选「覆盖原文件」就能写回原处。',
+    tags: ['本地处理', '导入导出', '可覆盖原文件']
+  }) + NB.sprite();
+  NB.bindTheme();
+
+  /* ---------------- tabs ---------------- */
+  var activeTab = 'dedupe';
+  document.querySelectorAll('.fw-tabs button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      activeTab = b.getAttribute('data-tab');
+      document.querySelectorAll('.fw-tabs button').forEach(function (x) { x.classList.toggle('on', x === b); });
+      $('pane-dedupe').classList.toggle('on', activeTab === 'dedupe');
+      $('pane-codec').classList.toggle('on', activeTab === 'codec');
+      NB.haptic(5);
+    });
+  });
+
+  /* ---------------- counters ---------------- */
+  NB.counter($('dedupe-in'), $('dcount'));
+  NB.counter($('dedupe-out'), $('ocount'));
+  NB.counter($('codec-in'), $('ccount'));
+  NB.counter($('codec-out'), $('cocount'));
+
+  /* ---------------- source badge ---------------- */
+  var sources = { dedupe: null, codec: null };
+  function setSource(kind, name, meta) {
+    sources[kind] = name || null;
+    var box = $(kind === 'dedupe' ? 'srcDedupe' : 'srcCodec');
+    var label = $(kind === 'dedupe' ? 'srcDedupeName' : 'srcCodecName');
+    if (!name) { box.hidden = true; $(kind === 'dedupe' ? 'srcState' : 'codecState').textContent = kind === 'dedupe' ? '本地处理' : 'Base64 / URL / JSON'; return; }
+    box.hidden = false;
+    label.textContent = '已导入 ' + name + (meta ? ' · ' + meta : '') + '（导出时可覆盖）';
+    $(kind === 'dedupe' ? 'srcState' : 'codecState').textContent = '已导入';
+  }
+
+  function defaultName(kind) {
+    var last = NB.lastImport();
+    if (last && last.name) {
+      var base = NB.sanitizeName(NB.stripExt(last.name), '导出');
+      return base;
+    }
+    return kind === 'dedupe' ? '去重结果' : '编码结果';
+  }
+
+  function pick(kind, inputId) {
+    NB.upload({
+      accept: '.txt,.csv,.log,.tsv,.json,text/plain,text/csv,application/json',
+      onText: function (text, file, meta) {
+        $(inputId).value = NB.guard(text).text;
+        $(inputId).dispatchEvent(new Event('input', { bubbles: true }));
+        setSource(kind, file.name, IO.fmtBytes(file.size));
+        NB.toast('已导入：' + file.name);
+        NB.haptic(8);
+      }
+    });
+  }
+
+  $('pickDedupe').addEventListener('click', function () { pick('dedupe', 'dedupe-in'); });
+  $('dropDedupe').addEventListener('click', function () { pick('dedupe', 'dedupe-in'); });
+  $('dropCodec').addEventListener('click', function () { pick('codec', 'codec-in'); });
+
+  function bindDrop(el, kind, inputId) {
+    ['dragover', 'dragenter'].forEach(function (e) {
+      el.addEventListener(e, function (ev) { ev.preventDefault(); el.classList.add('drag'); });
+    });
+    ['dragleave', 'drop'].forEach(function (e) {
+      el.addEventListener(e, function (ev) { ev.preventDefault(); el.classList.remove('drag'); });
+    });
+    el.addEventListener('drop', function (ev) {
+      var f = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0];
+      if (!f) return;
+      NB.importFile(f, {
+        onText: function (text, file) {
+          $(inputId).value = NB.guard(text).text;
+          $(inputId).dispatchEvent(new Event('input', { bubbles: true }));
+          setSource(kind, file.name, IO.fmtBytes(file.size));
+          NB.toast('已导入：' + file.name);
+        }
+      });
+    });
+  }
+  bindDrop($('dropDedupe'), 'dedupe', 'dedupe-in');
+  bindDrop($('dropCodec'), 'codec', 'codec-in');
+
+  $('sampleDedupe').innerHTML = '<svg class="ic"><use href="#i-spark"/></svg>填入示例';
+  $('sampleDedupe').addEventListener('click', function () {
+    $('dedupe-in').value = [
+      '15800000001----A1B2----未查',
+      '15800000002----C3D4----已查',
+      '15800000001----A1B2----未查',
+      '15800000003----E5F6----未查',
+      '',
+      '15800000002----C3D4----已查',
+      '15800000004----G7H8----待核'
+    ].join('\n');
+    $('dedupe-in').dispatchEvent(new Event('input', { bubbles: true }));
+    runDedupe();
+  });
+
+  $('clearDedupe').addEventListener('click', function () {
+    $('dedupe-in').value = '';
+    $('dedupe-out').value = '';
+    setSource('dedupe', null);
+    $('dedupe-in').dispatchEvent(new Event('input', { bubbles: true }));
+    $('dedupe-out').dispatchEvent(new Event('input', { bubbles: true }));
+    $('stRaw').textContent = '0'; $('stUniq').textContent = '0'; $('stDup').textContent = '0'; $('stChars').textContent = '0';
+    $('outMeta').textContent = '等待处理';
+    $('undoDedupe').disabled = true;
+    IO.clearFx('清空成功', '输入与结果已移除');
+  });
+
+  /* ---------------- dedupe ---------------- */
+  var lastInput = '';
+  function runDedupe() {
+    var raw = $('dedupe-in').value;
+    if (!raw.trim()) { NB.toast('先粘贴或导入内容'); return; }
+    var ignoreEmpty = $('chkEmpty').checked;
+    var trim = $('chkTrim').checked;
+    var ignoreCase = $('chkCase').checked;
+    var doSort = $('chkSort').checked;
+
+    var lines = raw.replace(/\r\n?/g, '\n').split('\n');
+    var seen = Object.create(null);
+    var out = [];
+    var dup = 0;
+    lines.forEach(function (line) {
+      var value = trim ? line.trim() : line;
+      if (ignoreEmpty && value.trim() === '') return;
+      var key = ignoreCase ? value.toLowerCase() : value;
+      if (seen[key]) { dup++; return; }
+      seen[key] = 1;
+      out.push(value);
+    });
+    if (doSort) out.sort(function (a, b) { return a < b ? -1 : a > b ? 1 : 0; });
+    if (out.length > NB.MAX_ROWS) { out = out.slice(0, NB.MAX_ROWS); NB.toast('结果超过 5 万行，已截断'); }
+
+    lastInput = $('dedupe-out').value;
+    $('dedupe-out').value = out.join('\n');
+    $('dedupe-out').dispatchEvent(new Event('input', { bubbles: true }));
+
+    $('stRaw').textContent = NB.fmtNum(lines.length);
+    $('stUniq').textContent = NB.fmtNum(out.length);
+    $('stDup').textContent = NB.fmtNum(dup);
+    $('stChars').textContent = NB.fmtNum(raw.length);
+    $('outMeta').textContent = NB.fmtNum(out.length) + ' 行 · 删除 ' + NB.fmtNum(dup) + ' 行';
+    $('undoDedupe').disabled = !lastInput;
+    NB.toast('去重完成，删除 ' + NB.fmtNum(dup) + ' 行');
+    NB.haptic(9);
+  }
+  $('runDedupe').addEventListener('click', runDedupe);
+  $('dedupe-in').addEventListener('input', NB.debounce(function () {
+    var n = $('dedupe-in').value ? $('dedupe-in').value.replace(/\r\n?/g, '\n').split('\n').length : 0;
+    $('stRaw').textContent = NB.fmtNum(n);
+    $('stChars').textContent = NB.fmtNum($('dedupe-in').value.length);
+  }, 160));
+  $('undoDedupe').addEventListener('click', function () {
+    if (!lastInput) return;
+    $('dedupe-out').value = lastInput;
+    $('dedupe-out').dispatchEvent(new Event('input', { bubbles: true }));
+    lastInput = '';
+    $('undoDedupe').disabled = true;
+    NB.toast('已撤销到上一次结果');
+  });
+
+  /* ---------------- copy / export ---------------- */
+  $('copyDedupe').addEventListener('click', function () {
+    var t = $('dedupe-out').value;
+    if (!t) { NB.toast('还没有结果'); return; }
+    IO.copy(t).then(function (ok) { NB.toast(ok ? '已复制全部结果' : '复制失败'); });
+  });
+  $('exportDedupe').addEventListener('click', function () {
+    var t = $('dedupe-out').value;
+    if (!t) { NB.toast('还没有结果'); return; }
+    NB.exportDialog({
+      text: t,
+      name: defaultName('dedupe'),
+      ext: 'txt',
+      meta: NB.fmtNum(t.replace(/\r\n?/g, '\n').split('\n').length) + ' 行'
+    });
+  });
+
+  /* ---------------- codec ---------------- */
+  function setCodec(text, label) {
+    $('codec-out').value = text;
+    $('codec-out').dispatchEvent(new Event('input', { bubbles: true }));
+    $('codecMeta').textContent = label || '';
+  }
+  function b64e(s) { return btoa(unescape(encodeURIComponent(s))); }
+  function b64d(s) { return decodeURIComponent(escape(atob(s.replace(/\s+/g, '')))); }
+
+  document.querySelectorAll('.codec-grid .mini-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var input = $('codec-in').value;
+      if (!input) { NB.toast('先输入内容'); return; }
+      var act = btn.getAttribute('data-act');
+      try {
+        if (act === 'b64e') { setCodec(b64e(input), 'Base64 编码'); }
+        else if (act === 'b64d') { setCodec(b64d(input), 'Base64 解码'); }
+        else if (act === 'urle') { setCodec(encodeURIComponent(input), 'URL 编码'); }
+        else if (act === 'urld') { setCodec(decodeURIComponent(input), 'URL 解码'); }
+        else if (act === 'html') { setCodec(input.replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }), 'HTML 转义'); }
+        else if (act === 'json') { setCodec(JSON.stringify(JSON.parse(input), null, 2), 'JSON 美化'); }
+        else if (act === 'upper') { setCodec(input.toUpperCase().replace(/[ \t]+/g, ' '), '大写 / 清理空白'); }
+        NB.haptic(6);
+      } catch (e) {
+        setCodec('', '失败');
+        NB.toast('转换失败：' + (e && e.message || e));
+      }
+    });
+  });
+  $('copyCodec').addEventListener('click', function () {
+    var t = $('codec-out').value;
+    if (!t) { NB.toast('还没有结果'); return; }
+    IO.copy(t).then(function (ok) { NB.toast(ok ? '已复制' : '复制失败'); });
+  });
+  $('exportCodec').addEventListener('click', function () {
+    var t = $('codec-out').value;
+    if (!t) { NB.toast('还没有结果'); return; }
+    NB.exportDialog({ text: t, name: defaultName('codec'), ext: 'txt', meta: NB.fmtNum(t.length) + ' 字符' });
+  });
+
+  /* 首次打开时恢复最近导入标记 */
+  var last = NB.lastImport();
+  if (last && last.name) {
+    if (activeTab === 'dedupe') $('srcState').textContent = '最近导入：' + last.name;
+  }
+})();
+</script>
+</body>
+</html>

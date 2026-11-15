@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-accent="indigo" data-motion="on" data-fx="on">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f3f4f7">
+<title>文本排序 · Nebula</title>
+<link rel="stylesheet" href="ui-kit.css">
+<link rel="stylesheet" href="tool-page.css">
+<style>
+  .sort-badge{background:var(--accent-soft);color:var(--accent);border-color:transparent;}
+  .sort-hero-note{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;}
+  .sort-hero-note .tag{height:20px;font-size:8.5px;}
+  .col-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:5px;background:var(--accent);color:var(--on-accent);font-size:8px;font-weight:900;vertical-align:1px;}
+  .result-panel .preview{max-height:420px;overflow-y:auto;}
+  .result-panel .preview-head{position:sticky;top:0;z-index:2;}
+  .custom-field{display:none;}
+  .custom-field.show{display:block;}
+  .stale-note{display:none;margin-top:8px;}
+  .stale-note.show{display:flex;}
+  .sort-mode-field .seg{margin-top:0;}
+  .summary-inline{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:9px;color:var(--faint);margin-top:8px;font-weight:650;}
+  .summary-inline span{display:inline-flex;align-items:center;gap:4px;}
+  .summary-inline .ic{width:12px;height:12px;}
+  .dot-ok{width:5px;height:5px;border-radius:50%;background:var(--ok);}
+  .dot-warn{width:5px;height:5px;border-radius:50%;background:var(--warn);}
+  @media (max-width:420px){.stat-grid{grid-template-columns:repeat(3,1fr);}.stat-grid > div:nth-child(4){display:none;}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-sort" viewBox="0 0 24 24"><path d="M7 4v16M4 7l3-3 3 3M17 20V4M14 17l3 3 3-3M11 8h4M11 12h6M11 16h3"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></symbol>
+  <symbol id="i-clipboard" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 9h6M9 13h6M9 17h4"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 2.5 14.5 9l6.5 2.5L14.5 14 12 21.5 9.5 14 3 11.5 9.5 9z"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7z"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></symbol>
+  <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 20 6v5.5c0 5-3.4 8.2-8 9.5-4.6-1.3-8-4.5-8-9.5V6z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17v.01"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="M12 4v16M6 14l6 6 6-6"/></symbol>
+  <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="M12 20V4M6 10l6-6 6 6"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></symbol>
+</defs></svg>
+
+<main class="tool-shell">
+  <div class="tool-head-row">
+    <div class="tool-head-icon"><svg class="ic"><use href="#i-sort"/></svg></div>
+    <div class="tool-head">
+      <span class="kicker"><span class="dot"></span>TEXT SORTER</span>
+      <h1>文本排序</h1>
+      <p>按第 3 列从小到大排序，整行内容原样保留。适合处理 <b>----</b> 分隔的账号、编号、名单数据。</p>
+      <div class="sort-hero-note">
+        <span class="tag sort-badge">默认第 3 列</span>
+        <span class="tag sort-badge">升序</span>
+        <span class="tag sort-badge">整行保留</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 输入 -->
+  <section class="panel">
+    <div class="panel-head">
+      <svg class="ic"><use href="#i-file"/></svg>
+      <b>粘贴数据</b>
+      <span class="panel-sub">每行一条，自动识别分隔符</span>
+    </div>
+    <div class="editor-wrap">
+      <textarea class="editor" id="editor" spellcheck="false" autocomplete="off" placeholder="13731252652----2481100----3716458----BOB32481100----yan1008&#10;13731252653----2481101----1200345----BOB32481101----yan1009&#10;13731252654----2481102----9988776----BOB32481102----yan1010"></textarea>
+    </div>
+    <div class="editor-bar">
+      <button class="mini-btn" type="button" id="importBtn"><svg class="ic"><use href="#i-upload"/></svg>导入文件</button>
+      <button class="mini-btn" type="button" id="pasteBtn"><svg class="ic"><use href="#i-clipboard"/></svg>粘贴</button>
+      <button class="mini-btn" type="button" id="sampleBtn"><svg class="ic"><use href="#i-spark"/></svg>示例</button>
+      <span class="spacer"></span>
+      <button class="mini-btn ghost" type="button" id="clearBtn"><svg class="ic"><use href="#i-trash"/></svg>清空</button>
+    </div>
+    <input type="file" id="fileInput" accept=".txt,.csv,.log,.tsv,text/plain,text/csv" hidden>
+    <div class="stat-grid">
+      <div><b id="stLines">0</b><span>有效行数</span></div>
+      <div><b id="stCols">0</b><span>识别列数</span></div>
+      <div><b id="stEmpty">0</b><span>空行跳过</span></div>
+      <div><b id="stChars">0</b><span>字符总数</span></div>
+    </div>
+    <div class="summary-inline" id="detectLine"><span class="dot-ok"></span><span id="detectText">等待输入数据</span></div>
+  </section>
+
+  <!-- 排序设置 -->
+  <section class="panel">
+    <div class="panel-head">
+      <svg class="ic"><use href="#i-sort"/></svg>
+      <b>排序设置</b>
+      <span class="panel-sub">改完点下方按钮</span>
+    </div>
+    <div class="field-grid">
+      <div class="field">
+        <label><svg class="ic"><use href="#i-table"/></svg>按第几列排序</label>
+        <input type="number" id="colInput" min="1" max="99" step="1" value="3" inputmode="numeric">
+        <div class="hint" id="colHint">默认第 3 列</div>
+      </div>
+      <div class="field">
+        <label><svg class="ic"><use href="#i-file"/></svg>分隔符</label>
+        <select id="delimSel">
+          <option value="auto" selected>自动识别</option>
+          <option value="----">----（四个短横）</option>
+          <option value="&#9;">Tab 制表符</option>
+          <option value=",">英文逗号 ,</option>
+          <option value="|">竖线 |</option>
+          <option value=";">分号 ;</option>
+          <option value="MULTI">两个以上空格</option>
+          <option value="custom">自定义…</option>
+        </select>
+      </div>
+      <div class="field custom-field" id="customField">
+        <label><svg class="ic"><use href="#i-info"/></svg>自定义分隔符</label>
+        <input type="text" id="customDelim" placeholder="例如 ： 或 ::::" maxlength="12">
+      </div>
+      <div class="field full sort-mode-field">
+        <label><svg class="ic"><use href="#i-arrow-down"/></svg>排序方式</label>
+        <div class="seg" id="modeSeg">
+          <button type="button" data-m="auto" class="on">自动</button>
+          <button type="button" data-m="num">按数字</button>
+          <button type="button" data-m="text">按文本</button>
+        </div>
+      </div>
+      <div class="field full">
+        <label><svg class="ic"><use href="#i-sort"/></svg>方向</label>
+        <div class="seg" id="dirSeg">
+          <button type="button" data-d="asc" class="on">从小到大 ↑</button>
+          <button type="button" data-d="desc">从大到小 ↓</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <div class="switch-row">
+        <span class="sr-copy"><b>第一行是标题</b><span>标题始终保持在第一行，不参与排序</span></span>
+        <button class="switch" id="headerToggle" type="button" role="switch" aria-checked="false" aria-label="第一行是标题"></button>
+      </div>
+      <div class="switch-row">
+        <span class="sr-copy"><b>仅输出排序列</b><span>只导出第 3 列的值，不保留整行</span></span>
+        <button class="switch" id="onlyToggle" type="button" role="switch" aria-checked="false" aria-label="仅输出排序列"></button>
+      </div>
+    </div>
+
+    <div class="action-bar">
+      <button class="btn btn-primary" id="runBtn" type="button"><svg class="ic"><use href="#i-play"/></svg>开始排序</button>
+      <button class="btn btn-ghost" id="resetBtn" type="button">重置</button>
+    </div>
+    <div class="note-line"><svg class="ic"><use href="#i-shield"/></svg><span>数据只在当前页面内存中处理，不会上传。关闭页面后自动消失。</span></div>
+  </section>
+
+  <!-- 结果 -->
+  <section class="panel result-panel" id="resultPanel">
+    <div class="result-top">
+      <div class="panel-head" style="margin:0">
+        <svg class="ic"><use href="#i-table"/></svg>
+        <b>排序结果</b>
+      </div>
+      <span class="result-count" id="resultCount">还没有结果</span>
+    </div>
+    <div class="result-actions" style="margin-bottom:10px">
+      <button class="mini-btn" id="copyBtn" type="button"><svg class="ic"><use href="#i-copy"/></svg>复制</button>
+      <button class="mini-btn" id="exportTxt" type="button"><svg class="ic"><use href="#i-download"/></svg>导出 TXT</button>
+      <button class="mini-btn" id="exportCsv" type="button"><svg class="ic"><use href="#i-download"/></svg>导出 CSV</button>
+    </div>
+    <div class="preview" id="preview">
+      <div class="preview-empty"><svg class="ic"><use href="#i-sort"/></svg>粘贴数据后点「开始排序」<br>结果会显示在这里</div>
+    </div>
+    <div class="stale-note note-line warn" id="staleNote"><svg class="ic"><use href="#i-alert"/></svg><span>输入或设置已改变，点「开始排序」刷新结果。</span></div>
+  </section>
+
+  <div class="result-dock" id="resultDock">
+    <div class="rd-copy"><b id="dockCount">0 行已排序</b><span>按第 3 列 · 升序</span></div>
+    <button class="btn btn-primary" id="dockCopy" type="button">复制</button>
+    <button class="btn btn-ghost" id="dockExport" type="button">导出</button>
+  </div>
+</main>
+
+<script src="lib-io.js"></script>
+<script src="app-core.js"></script>
+<script src="ui-kit.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var editor = $('editor');
+  editor.setAttribute('maxlength', '50000');
+  var state = {
+    result: [],
+    header: null,
+    cols: 0,
+    total: 0,
+    empty: 0,
+    chars: 0,
+    delimiter: '----',
+    ran: false,
+    dirty: false
+  };
+  var colInput = $('colInput');
+  var delimSel = $('delimSel');
+  var customDelim = $('customDelim');
+  var mode = 'auto';
+  var dir = 'asc';
+  var hasHeader = false;
+  var onlyCol = false;
+
+  var collator;
+  try { collator = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' }); }
+  catch (e) { collator = null; }
+
+  function esc(s) { return IO.escape(String(s == null ? '' : s)); }
+  function toast(msg) { UK.toast(msg); }
+  function linesOf(text) { return String(text || '').replace(/\r\n?/g, '\n').split('\n'); }
+
+  /* ---------------- 分隔符识别 ---------------- */
+  function detectDelimiter(text) {
+    var sample = linesOf(text).filter(function (l) { return l.trim(); }).slice(0, 40);
+    if (!sample.length) return '----';
+    var candidates = [
+      { k: '----', re: /----/g },
+      { k: '\t', re: /\t/g },
+      { k: '|', re: /\|/g },
+      { k: ';', re: /;/g },
+      { k: ',', re: /,/g },
+      { k: 'MULTI', re: /\s{2,}/g }
+    ];
+    var best = null, bestScore = 0;
+    candidates.forEach(function (c) {
+      var linesHit = 0, total = 0;
+      sample.forEach(function (line) {
+        var m = line.match(c.re);
+        if (m) { linesHit++; total += m.length; }
+      });
+      var score = linesHit * 100 + Math.min(total, 90);
+      if (linesHit >= Math.ceil(sample.length * 0.5) && score > bestScore) {
+        best = c.k; bestScore = score;
+      }
+    });
+    return best || '----';
+  }
+
+  function splitLine(line, delim) {
+    if (delim === 'MULTI') return line.split(/\s{2,}/);
+    if (delim === ',') return parseQuoted(line, ',');
+    if (delim === ';') return parseQuoted(line, ';');
+    if (delim === '\t') return parseQuoted(line, '\t');
+    return line.split(delim);
+  }
+
+  /* 简单 CSV/TSV 引号解析：支持 "" 转义 */
+  function parseQuoted(line, delim) {
+    var out = [], cur = '', quoted = false;
+    for (var i = 0; i < line.length; i++) {
+      var ch = line[i];
+      if (quoted) {
+        if (ch === '"') {
+          if (line[i + 1] === '"') { cur += '"'; i++; }
+          else quoted = false;
+        } else cur += ch;
+      } else {
+        if (ch === '"' && cur === '') quoted = true;
+        else if (ch === delim) { out.push(cur); cur = ''; }
+        else cur += ch;
+      }
+    }
+    out.push(cur);
+    return out;
+  }
+
+  function currentDelimiter(text) {
+    var v = delimSel.value;
+    if (v === 'custom') return customDelim.value || '----';
+    if (v === 'auto') return detectDelimiter(text);
+    return v;
+  }
+
+  /* ---------------- 输入统计 ---------------- */
+  function parseInput() {
+    var text = editor.value;
+    var all = linesOf(text);
+    var delim = currentDelimiter(text);
+    var nonEmpty = [], empty = 0;
+    all.forEach(function (line) {
+      if (!line.trim()) { empty++; return; }
+      nonEmpty.push({ raw: line, cells: splitLine(line, delim) });
+    });
+    var cols = 0;
+    nonEmpty.forEach(function (r) { if (r.cells.length > cols) cols = r.cells.length; });
+    state.total = nonEmpty.length;
+    state.empty = empty;
+    state.cols = cols;
+    state.chars = text.length;
+    state.delimiter = delim;
+    state.header = (hasHeader && nonEmpty.length) ? nonEmpty[0] : null;
+    var data = hasHeader ? nonEmpty.slice(1) : nonEmpty;
+    state.data = data;
+    return { delim: delim, cols: cols, data: data };
+  }
+
+  function delimLabel(d) {
+    if (d === '\t') return 'Tab';
+    if (d === 'MULTI') return '多空格';
+    if (d === '----') return '----';
+    return d;
+  }
+
+  function updateStats() {
+    var info = parseInput();
+    $('stLines').textContent = state.total;
+    $('stCols').textContent = state.cols;
+    $('stEmpty').textContent = state.empty;
+    $('stChars').textContent = state.chars >= 10000 ? (state.chars / 10000).toFixed(1) + 'w' : state.chars;
+    if (!state.total) {
+      $('detectLine').innerHTML = '<span class="dot-warn"></span><span>等待输入数据</span>';
+      $('detectText').textContent = '等待输入数据';
+    } else {
+      var col = parseInt(colInput.value, 10) || 3;
+      var ok = state.cols >= col;
+      $('detectLine').innerHTML = '<span class="' + (ok ? 'dot-ok' : 'dot-warn') + '"></span><span id="detectText">' +
+        (ok ? ('已识别 ' + state.cols + ' 列 · 分隔符 ' + delimLabel(info.delim)) : ('只识别到 ' + state.cols + ' 列，请调整排序列或分隔符')) + '</span>';
+      colInput.max = Math.max(1, state.cols || 99);
+      if (state.cols && col > state.cols) {
+        $('colHint').textContent = '当前数据只有 ' + state.cols + ' 列';
+      } else {
+        $('colHint').textContent = '默认第 3 列';
+      }
+    }
+    markStale();
+  }
+
+  var updateStatsDebounced = IO.debounce(updateStats, 180);
+  editor.addEventListener('input', updateStatsDebounced);
+  colInput.addEventListener('input', updateStats);
+  delimSel.addEventListener('change', function () {
+    $('customField').classList.toggle('show', delimSel.value === 'custom');
+    updateStats();
+    if (delimSel.value === 'custom') customDelim.focus();
+  });
+  customDelim.addEventListener('input', updateStats);
+
+  /* ---------------- 开关 ---------------- */
+  $('headerToggle').addEventListener('click', function () {
+    hasHeader = !hasHeader;
+    this.setAttribute('aria-checked', hasHeader ? 'true' : 'false');
+    updateStats();
+  });
+  $('onlyToggle').addEventListener('click', function () {
+    onlyCol = !onlyCol;
+    this.setAttribute('aria-checked', onlyCol ? 'true' : 'false');
+    markStale();
+    if (state.result.length && !state.dirty) renderResult();
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#modeSeg button'), function (b) {
+    b.addEventListener('click', function () {
+      mode = b.getAttribute('data-m');
+      Array.prototype.forEach.call(document.querySelectorAll('#modeSeg button'), function (x) { x.classList.toggle('on', x === b); });
+      markStale();
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#dirSeg button'), function (b) {
+    b.addEventListener('click', function () {
+      dir = b.getAttribute('data-d');
+      Array.prototype.forEach.call(document.querySelectorAll('#dirSeg button'), function (x) { x.classList.toggle('on', x === b); });
+      markStale();
+    });
+  });
+
+  function markStale() {
+    if (state.ran) {
+      state.dirty = true;
+      $('staleNote').classList.add('show');
+      $('resultCount').textContent = '设置已更改';
+    }
+  }
+
+  /* ---------------- 数字解析 ---------------- */
+  function toBigInt(s) {
+    s = String(s == null ? '' : s).trim();
+    if (!/^[+-]?\d+$/.test(s)) return null;
+    try { return BigInt(s); } catch (e) { return null; }
+  }
+  function toNumber(s) {
+    s = String(s == null ? '' : s).trim().replace(/,/g, '');
+    if (!s) return null;
+    if (!/^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/.test(s)) return null;
+    var n = Number(s);
+    return isFinite(n) ? n : null;
+  }
+  function compareNumber(a, b) {
+    var ba = toBigInt(a), bb = toBigInt(b);
+    if (ba !== null && bb !== null) {
+      if (ba < bb) return -1;
+      if (ba > bb) return 1;
+      return 0;
+    }
+    var na = toNumber(a), nb = toNumber(b);
+    if (na === null && nb === null) return null;
+    if (na === null) return 1;
+    if (nb === null) return -1;
+    return na < nb ? -1 : (na > nb ? 1 : 0);
+  }
+  function compareText(a, b) {
+    if (collator) return collator.compare(a, b);
+    a = String(a); b = String(b);
+    return a < b ? -1 : (a > b ? 1 : 0);
+  }
+
+  /* ---------------- 排序 ---------------- */
+  function runSort() {
+    var info = parseInput();
+    if (!state.total) { toast('请先粘贴或导入数据'); editor.focus(); return; }
+    var col = parseInt(colInput.value, 10);
+    if (!col || col < 1) col = 1;
+    if (state.cols && col > state.cols) {
+      toast('当前数据只有 ' + state.cols + ' 列，无法按第 ' + col + ' 列排序');
+      colInput.focus();
+      return;
+    }
+    var data = state.data.map(function (r, i) {
+      return {
+        raw: r.raw,
+        cells: r.cells,
+        key: String(r.cells[col - 1] == null ? '' : r.cells[col - 1]).trim(),
+        idx: i
+      };
+    });
+
+    var mult = dir === 'desc' ? -1 : 1;
+    data.sort(function (a, b) {
+      var ka = a.key, kb = b.key;
+      // 空值始终排在最后
+      if (!ka && kb) return 1;
+      if (ka && !kb) return -1;
+      var base = 0;
+      if (mode === 'num') {
+        var n = compareNumber(ka, kb);
+        base = n === null ? compareText(ka, kb) : n;
+      } else if (mode === 'auto') {
+        var auto = compareNumber(ka, kb);
+        base = auto === null ? compareText(ka, kb) : auto;
+      } else {
+        base = compareText(ka, kb);
+      }
+      if (base === 0) return a.idx - b.idx;
+      return base * mult;
+    });
+
+    state.result = data;
+    state.ran = true;
+    state.dirty = false;
+    state.sortCol = col;
+    $('staleNote').classList.remove('show');
+    renderResult();
+    $('resultCount').textContent = '共 ' + data.length + ' 行';
+    $('resultDock').classList.add('show');
+    $('dockCount').textContent = data.length + ' 行已排序';
+    var dirText = dir === 'asc' ? '升序' : '降序';
+    $('dockCount').nextElementSibling.textContent = '按第 ' + col + ' 列 · ' + dirText;
+    UK.haptic(10);
+    if (!data.length) toast('没有可排序的数据行');
+    // 结果滚入视野
+    try {
+      var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      $('resultPanel').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    } catch (e) { }
+  }
+  $('runBtn').addEventListener('click', runSort);
+
+  function outputText(which) {
+    var data = state.result;
+    if (!data.length) return '';
+    var lines = [];
+    var col = state.sortCol || parseInt(colInput.value, 10) || 3;
+    if (hasHeader && state.header) {
+      lines.push(onlyCol ? String(state.header.cells[col - 1] || '') : state.header.raw);
+    }
+    data.forEach(function (r) {
+      lines.push(onlyCol ? r.key : r.raw);
+    });
+    if (which === 'csv') {
+      var rows = [];
+      if (hasHeader && state.header) {
+        rows.push(onlyCol ? csvCell(state.header.cells[col - 1] || '') : state.header.cells.map(csvCell).join(','));
+      }
+      data.forEach(function (r) {
+        if (onlyCol) rows.push(csvCell(r.key));
+        else {
+          var cells = r.cells.slice();
+          while (cells.length < state.cols) cells.push('');
+          rows.push(cells.map(csvCell).join(','));
+        }
+      });
+      return '\ufeff' + rows.join('\r\n');
+    }
+    return lines.join('\n');
+  }
+  function csvCell(s) { return '"' + String(s == null ? '' : s).replace(/"/g, '""') + '"'; }
+
+  function renderResult() {
+    var data = state.result;
+    var box = $('preview');
+    if (!data.length) {
+      box.innerHTML = '<div class="preview-empty"><svg class="ic"><use href="#i-sort"/></svg>没有可显示的结果<br>检查排序列和分隔符</div>';
+      return;
+    }
+    var col = state.sortCol || parseInt(colInput.value, 10) || 3;
+    var show = data.slice(0, 150);
+    var html = '<div class="preview-head"><span>#</span><span>第 ' + col + ' 列</span><span>整行内容</span></div>';
+    show.forEach(function (r, i) {
+      html += '<div class="srow' + (onlyCol ? ' only' : '') + '">' +
+        '<span class="idx">' + (i + 1) + '</span>' +
+        '<span class="key" title="' + esc(r.key) + '">' + esc(r.key) + '</span>' +
+        '<span class="raw" title="' + esc(r.raw) + '">' + esc(r.raw) + '</span>' +
+        '</div>';
+    });
+    box.innerHTML = html;
+    var foot = document.createElement('div');
+    foot.className = 'preview-foot';
+    foot.textContent = data.length > show.length
+      ? '仅预览前 ' + show.length + ' 行 · 导出包含全部 ' + data.length + ' 行'
+      : '共 ' + data.length + ' 行 · 已按第 ' + col + ' 列' + (dir === 'asc' ? '升序' : '降序') + '排列';
+    box.appendChild(foot);
+  }
+
+  /* ---------------- 复制 / 导出 ---------------- */
+  function copyResult() {
+    if (!state.result.length) { toast('还没有排序结果'); return; }
+    var text = outputText('txt');
+    IO.copy(text).then(function (ok) {
+      if (ok) { toast('已复制 ' + state.result.length + ' 行'); UK.haptic(8); }
+      else toast('复制失败，请长按结果选择');
+    });
+  }
+  function exportTxt() {
+    if (!state.result.length) { toast('还没有排序结果'); return; }
+    var text = outputText('txt');
+    if (window.NB && NB.exportDialog) {
+      var _last = NB.lastImport();
+      NB.exportDialog({ text: text, name: _last && _last.name ? NB.stripExt(_last.name) : ('排序_第' + (state.sortCol || 3) + '列'), ext: 'txt', meta: state.result.length + ' 行' });
+      return;
+    }
+    IO.exportText(text, IO.makeName('排序_第' + (state.sortCol || 3) + '列', 'txt'), 'text/plain', toast);
+  }
+  function exportCsv() {
+    if (!state.result.length) { toast('还没有排序结果'); return; }
+    var text = outputText('csv');
+    if (window.NB && NB.exportDialog) {
+      var _last2 = NB.lastImport();
+      NB.exportDialog({ text: text, name: _last2 && _last2.name ? NB.stripExt(_last2.name) : ('排序_第' + (state.sortCol || 3) + '列'), ext: 'csv', meta: state.result.length + ' 行' });
+      return;
+    }
+    IO.exportText(text, IO.makeName('排序_第' + (state.sortCol || 3) + '列', 'csv'), 'text/csv', toast);
+  }
+  $('copyBtn').addEventListener('click', copyResult);
+  $('exportTxt').addEventListener('click', exportTxt);
+  $('exportCsv').addEventListener('click', exportCsv);
+  $('dockCopy').addEventListener('click', copyResult);
+  $('dockExport').addEventListener('click', exportTxt);
+
+  /* ---------------- 导入 / 清空 / 示例 ---------------- */
+  $('importBtn').addEventListener('click', function () {
+    if (window.NB && NB.upload) {
+      NB.upload({
+        accept: '.txt,.csv,.log,.tsv,text/plain,text/csv',
+        onText: function (text, f) {
+          editor.value = text;
+          updateStats();
+          toast('已导入 ' + f.name);
+          runSort();
+        }
+      });
+      return;
+    }
+    $('fileInput').click();
+  });
+  $('fileInput').addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    if (!f) return;
+    IO.readFile(f).then(function (text) {
+      editor.value = text;
+      updateStats();
+      if (window.NB) NB.rememberImport(f.name, null, f.size);
+      toast('已导入 ' + f.name);
+      runSort();
+    }).catch(function () { toast('读取失败，请重试'); });
+    this.value = '';
+  });
+  $('pasteBtn').addEventListener('click', function () {
+    if (navigator.clipboard && navigator.clipboard.readText) {
+      navigator.clipboard.readText().then(function (text) {
+        if (!text) { toast('剪贴板是空的'); return; }
+        editor.value = text;
+        updateStats();
+        toast('已粘贴');
+      }).catch(function () { toast('无法读取剪贴板，请长按输入框粘贴'); editor.focus(); });
+    } else {
+      toast('请长按输入框粘贴'); editor.focus();
+    }
+  });
+  $('clearBtn').addEventListener('click', function () {
+    function doClear() {
+      editor.value = '';
+      state.result = [];
+      state.ran = false;
+      state.dirty = false;
+      $('resultDock').classList.remove('show');
+      $('staleNote').classList.remove('show');
+      $('resultCount').textContent = '还没有结果';
+      $('preview').innerHTML = '<div class="preview-empty"><svg class="ic"><use href="#i-sort"/></svg>粘贴数据后点「开始排序」<br>结果会显示在这里</div>';
+      updateStats();
+      editor.focus();
+      IO.clearFx('清空成功');
+    }
+    if (editor.value) {
+      IO.confirm({
+        title: '清空当前内容？',
+        text: '输入文本和排序结果都会被清空。',
+        okText: '清空',
+        danger: true,
+        onOk: doClear
+      });
+    } else {
+      doClear();
+    }
+  });
+  $('sampleBtn').addEventListener('click', function () {
+    editor.value = [
+      '13731252652----2481100----3716458----BOB32481100----yan1008',
+      '13731252653----2481101----1200345----BOB32481101----yan1009',
+      '13731252654----2481102----9988776----BOB32481102----yan1010',
+      '13731252655----2481103----0451200----BOB32481103----yan1011',
+      '13731252656----2481104----3716440----BOB32481104----yan1012'
+    ].join('\n');
+    updateStats();
+    runSort();
+  });
+  $('resetBtn').addEventListener('click', function () {
+    colInput.value = '3';
+    delimSel.value = 'auto';
+    customDelim.value = '';
+    $('customField').classList.remove('show');
+    hasHeader = false; onlyCol = false;
+    $('headerToggle').setAttribute('aria-checked', 'false');
+    $('onlyToggle').setAttribute('aria-checked', 'false');
+    mode = 'auto'; dir = 'asc';
+    Array.prototype.forEach.call(document.querySelectorAll('#modeSeg button'), function (x) { x.classList.toggle('on', x.getAttribute('data-m') === 'auto'); });
+    Array.prototype.forEach.call(document.querySelectorAll('#dirSeg button'), function (x) { x.classList.toggle('on', x.getAttribute('data-d') === 'asc'); });
+    updateStats();
+    if (editor.value) runSort();
+    toast('已恢复默认设置');
+  });
+
+  /* ---------------- 拖放 ---------------- */
+  ['dragover', 'dragenter'].forEach(function (ev) {
+    editor.addEventListener(ev, function (e) { e.preventDefault(); editor.classList.add('drop-active'); });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    editor.addEventListener(ev, function (e) { e.preventDefault(); editor.classList.remove('drop-active'); });
+  });
+  editor.addEventListener('drop', function (e) {
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!f) return;
+    IO.readFile(f).then(function (text) {
+      editor.value = text;
+      updateStats();
+      if (window.NB) NB.rememberImport(f.name, null, f.size);
+      toast('已导入 ' + f.name);
+      runSort();
+    }).catch(function () { toast('读取失败'); });
+  });
+
+  /* ---------------- 快捷键 ---------------- */
+  document.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); runSort(); }
+  });
+
+  /* ---------------- 初始 ---------------- */
+  (function init() {
+    var sample = '13731252652----2481100----3716458----BOB32481100----yan1008\n' +
+      '13731252653----2481101----1200345----BOB32481101----yan1009\n' +
+      '13731252654----2481102----9988776----BOB32481102----yan1010';
+    if (!editor.value) editor.value = sample;
+    updateStats();
+  })();
+})();
+</script>
+<script src="v9-upgrade.js"></script>
+</body>
+</html>

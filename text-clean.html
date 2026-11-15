@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-accent="indigo" data-motion="on" data-fx="on">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f3f4f7">
+<title>文本清洗 · Nebula</title>
+<link rel="stylesheet" href="ui-kit.css">
+<link rel="stylesheet" href="tool-page.css">
+<link rel="stylesheet" href="plugin-tools.css">
+</head>
+<body>
+
+<main class="tool-shell">
+  <div id="head"></div>
+
+  <section class="panel">
+    <div class="panel-head"><svg class="ic"><use href="#i-upload"/></svg><b>1 · 导入文本</b><span class="panel-sub" id="srcState">本地处理</span></div>
+    <div class="pl-drop" id="drop">
+      <svg class="ic"><use href="#i-folder"/></svg>
+      <b>点击选择文件，或拖进来</b>
+      <small>txt / csv / log · 自动识别编码 · 导入后可覆盖原文件</small>
+    </div>
+    <div class="pl-src" id="src" hidden><svg class="ic"><use href="#i-file"/></svg><span id="srcName"></span></div>
+    <textarea class="editor" id="input" spellcheck="false" placeholder="粘贴需要清洗的文本，一行一条…"></textarea>
+    <div class="nb-count-row"><div class="nb-bar" id="ibar"><i></i></div><span class="nb-count" id="icount">0 / 50,000 字</span></div>
+    <div class="editor-bar">
+      <button class="mini-btn" id="pick" type="button"><svg class="ic"><use href="#i-upload"/></svg>导入文件</button>
+      <button class="mini-btn" id="sample" type="button"><svg class="ic"><use href="#i-spark"/></svg>填入示例</button>
+      <span class="spacer"></span>
+      <button class="mini-btn ghost" id="clear" type="button"><svg class="ic"><use href="#i-trash"/></svg>清空</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><svg class="ic"><use href="#i-sliders"/></svg><b>2 · 清洗规则</b><span class="panel-sub">按顺序执行</span></div>
+    <div class="pl-opts">
+      <label class="pl-opt"><input type="checkbox" id="oEmpty" checked><span><b>删除空行</b><small>空行和纯空格行都去掉</small></span></label>
+      <label class="pl-opt"><input type="checkbox" id="oDedupe" checked><span><b>行去重</b><small>完全相同的行只留一条</small></span></label>
+      <label class="pl-opt"><input type="checkbox" id="oTrim" checked><span><b>去首尾空白</b><small>清除行首行尾空格</small></span></label>
+      <label class="pl-opt"><input type="checkbox" id="oCollapse"><span><b>合并空白</b><small>连续空格压成一个</small></span></label>
+      <label class="pl-opt"><input type="checkbox" id="oNoSpace"><span><b>删除所有空白</b><small>空格、制表符全部去掉</small></span></label>
+      <label class="pl-opt"><input type="checkbox" id="oFull"><span><b>全角转半角</b><small>ＡＢＣ１２３ → ABC123</small></span></label>
+      <label class="pl-opt"><input type="checkbox" id="oSort"><span><b>结果排序</b><small>按 Unicode 升序</small></span></label>
+      <label class="pl-opt"><input type="checkbox" id="oLine"><span><b>加行号</b><small>01、02、03…</small></span></label>
+    </div>
+    <div class="pl-fields">
+      <div class="pl-field">
+        <label>大小写</label>
+        <select id="oCase"><option value="keep">保持原样</option><option value="upper">全部大写</option><option value="lower">全部小写</option><option value="title">单词首字母大写</option></select>
+      </div>
+      <div class="pl-field">
+        <label>行号分隔</label>
+        <input type="text" id="oLineSep" value=" " maxlength="4" placeholder="空格">
+      </div>
+      <div class="pl-field">
+        <label>每行前缀（可选）</label>
+        <input type="text" id="oPrefix" placeholder="例如：数据-" maxlength="30">
+      </div>
+      <div class="pl-field">
+        <label>每行后缀（可选）</label>
+        <input type="text" id="oSuffix" placeholder="例如：----未查" maxlength="30">
+      </div>
+    </div>
+    <div class="pl-run">
+      <button class="btn btn-primary" id="run" type="button"><svg class="ic"><use href="#i-spark"/></svg>开始清洗</button>
+      <button class="btn btn-ghost" id="resetOpts" type="button"><svg class="ic"><use href="#i-refresh"/></svg>恢复默认</button>
+    </div>
+    <div class="pl-stats">
+      <div><b id="stLines">0</b><span>原始行</span></div>
+      <div class="good"><b id="stOut">0</b><span>输出行</span></div>
+      <div class="warn"><b id="stCut">0</b><span>删掉</span></div>
+      <div><b id="stChars">0</b><span>字符</span></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="pl-out-head"><svg class="ic"><use href="#i-list"/></svg><b>清洗结果</b><span class="kv" id="outMeta">等待清洗</span></div>
+    <textarea class="editor" id="output" readonly placeholder="清洗后的结果会显示在这里…"></textarea>
+    <div class="nb-count-row"><div class="nb-bar" id="obar"><i></i></div><span class="nb-count" id="ocount">0 / 50,000 字</span></div>
+    <div class="pl-actions">
+      <button class="btn btn-ghost" id="copy" type="button"><svg class="ic"><use href="#i-copy"/></svg>复制</button>
+      <button class="btn btn-primary" id="export" type="button"><svg class="ic"><use href="#i-download"/></svg>导出…</button>
+    </div>
+  </section>
+</main>
+
+<script src="lib-io.js"></script>
+<script src="ui-kit.js"></script>
+<script src="app-core.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  $('head').innerHTML = NB.toolHead({
+    icon: '<svg class="ic"><use href="#i-filter"/></svg>',
+    kicker: 'TEXT CLEANER',
+    title: '文本清洗',
+    sub: '空行、重复行、首尾空格、全半角、大小写、前后缀和行号，一次处理完，导出时可覆盖原文件。',
+    tags: ['去重', '全半角', '可覆盖']
+  }) + NB.sprite();
+  NB.bindTheme();
+  NB.counter($('input'), $('icount'));
+  NB.counter($('output'), $('ocount'));
+
+  var imported = '';
+  function markSource(name, size) {
+    imported = name || '';
+    $('src').hidden = !name;
+    if (name) {
+      $('srcName').textContent = '已导入 ' + name + (size ? ' · ' + size : '') + '（可覆盖原文件）';
+      $('srcState').textContent = '已导入';
+    } else {
+      $('srcState').textContent = '本地处理';
+    }
+  }
+  function defaultName() {
+    var last = NB.lastImport();
+    if (imported) return NB.stripExt(imported);
+    if (last && last.name) return NB.stripExt(last.name);
+    return '文本清洗结果';
+  }
+
+  function pick() {
+    NB.upload({
+      accept: '.txt,.csv,.log,.tsv,text/plain,text/csv',
+      onText: function (text, f) {
+        $('input').value = NB.guard(text).text;
+        $('input').dispatchEvent(new Event('input', { bubbles: true }));
+        markSource(f.name, IO.fmtBytes(f.size));
+        NB.toast('已导入：' + f.name);
+        run();
+      }
+    });
+  }
+  $('pick').addEventListener('click', pick);
+  $('drop').addEventListener('click', pick);
+  ['dragover', 'dragenter'].forEach(function (e) { $('drop').addEventListener(e, function (ev) { ev.preventDefault(); $('drop').classList.add('drag'); }); });
+  ['dragleave', 'drop'].forEach(function (e) { $('drop').addEventListener(e, function (ev) { ev.preventDefault(); $('drop').classList.remove('drag'); }); });
+  $('drop').addEventListener('drop', function (ev) {
+    var f = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0];
+    if (!f) return;
+    NB.importFile(f, {
+      onText: function (text, file) {
+        $('input').value = NB.guard(text).text;
+        $('input').dispatchEvent(new Event('input', { bubbles: true }));
+        markSource(file.name, IO.fmtBytes(file.size));
+        NB.toast('已导入：' + file.name);
+        run();
+      }
+    });
+  });
+
+  var SAMPLE = [
+    '  15800000001----A1B2----未查  ',
+    '１５８０００００００２----Ｃ３Ｄ４----已查',
+    '15800000001----A1B2----未查',
+    '',
+    '15800000003----E5F6----未查   ',
+    '15800000002----C3D4----已查',
+    '    ',
+    '15800000004----G7H8----待核'
+  ].join('\n');
+  $('sample').addEventListener('click', function () {
+    $('input').value = SAMPLE;
+    $('input').dispatchEvent(new Event('input', { bubbles: true }));
+    run();
+  });
+  $('clear').addEventListener('click', function () {
+    $('input').value = '';
+    $('input').dispatchEvent(new Event('input', { bubbles: true }));
+    $('output').value = '';
+    $('output').dispatchEvent(new Event('input', { bubbles: true }));
+    markSource('');
+    $('stLines').textContent = $('stOut').textContent = $('stCut').textContent = $('stChars').textContent = '0';
+    $('outMeta').textContent = '等待清洗';
+    IO.clearFx('清空成功', '输入与结果已移除');
+  });
+
+  function toHalf(s) {
+    return s.replace(/[\uFF01-\uFF5E]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); }).replace(/\u3000/g, ' ');
+  }
+  function titleCase(s) {
+    return s.replace(/[A-Za-z]+/g, function (w) { return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); });
+  }
+  function lineNo(n) { return (n < 10 ? '0' + n : '' + n); }
+
+  function run() {
+    var raw = $('input').value;
+    if (!raw.trim()) { NB.toast('先粘贴或导入内容'); return; }
+    var empty = $('oEmpty').checked, dedupe = $('oDedupe').checked, trim = $('oTrim').checked;
+    var collapse = $('oCollapse').checked, noSpace = $('oNoSpace').checked, full = $('oFull').checked;
+    var sort = $('oSort').checked, addNo = $('oLine').checked;
+    var caseMode = $('oCase').value;
+    var sep = $('oLineSep').value;
+    var prefix = $('oPrefix').value, suffix = $('oSuffix').value;
+
+    var rawLines = raw.replace(/\r\n?/g, '\n').split('\n');
+    var seen = Object.create(null), out = [], cut = 0;
+    rawLines.forEach(function (line) {
+      var s = line;
+      if (trim) s = s.trim();
+      if (collapse) s = s.replace(/[ \t]+/g, ' ');
+      if (full) s = toHalf(s);
+      if (noSpace) s = s.replace(/\s+/g, '');
+      if (caseMode === 'upper') s = s.toUpperCase();
+      else if (caseMode === 'lower') s = s.toLowerCase();
+      else if (caseMode === 'title') s = titleCase(s);
+      if (empty && s.trim() === '') { cut++; return; }
+      if (dedupe) {
+        if (seen[s]) { cut++; return; }
+        seen[s] = 1;
+      }
+      out.push(s);
+    });
+    if (sort) out.sort(function (a, b) { return a < b ? -1 : a > b ? 1 : 0; });
+    if (out.length > NB.MAX_ROWS) out = out.slice(0, NB.MAX_ROWS);
+    out = out.map(function (s, i) { return (addNo ? lineNo(i + 1) + sep : '') + prefix + s + suffix; });
+
+    $('output').value = out.join('\n');
+    $('output').dispatchEvent(new Event('input', { bubbles: true }));
+    $('stLines').textContent = NB.fmtNum(rawLines.length);
+    $('stOut').textContent = NB.fmtNum(out.length);
+    $('stCut').textContent = NB.fmtNum(cut);
+    $('stChars').textContent = NB.fmtNum(raw.length);
+    $('outMeta').textContent = NB.fmtNum(out.length) + ' 行';
+    NB.haptic(7);
+  }
+  $('run').addEventListener('click', run);
+
+  function resetOpts() {
+    ['oEmpty', 'oDedupe', 'oTrim'].forEach(function (id) { $(id).checked = true; });
+    ['oCollapse', 'oNoSpace', 'oFull', 'oSort', 'oLine'].forEach(function (id) { $(id).checked = false; });
+    $('oCase').value = 'keep';
+    $('oLineSep').value = ' ';
+    $('oPrefix').value = '';
+    $('oSuffix').value = '';
+    run();
+    NB.toast('已恢复默认规则');
+  }
+  $('resetOpts').addEventListener('click', resetOpts);
+
+  $('copy').addEventListener('click', function () {
+    var t = $('output').value;
+    if (!t) { NB.toast('还没有结果'); return; }
+    IO.copy(t).then(function (ok) { NB.toast(ok ? '已复制全部结果' : '复制失败'); });
+  });
+  $('export').addEventListener('click', function () {
+    var t = $('output').value;
+    if (!t) { NB.toast('还没有结果'); return; }
+    NB.exportDialog({
+      text: t,
+      name: defaultName(),
+      ext: 'txt',
+      meta: NB.fmtNum(t.split('\n').length) + ' 行'
+    });
+  });
+
+  $('input').addEventListener('input', NB.debounce(function () {
+    if ($('input').value.trim()) run();
+  }, 500));
+})();
+</script>
+</body>
+</html>

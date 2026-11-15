@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-accent="indigo" data-motion="on" data-fx="on">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f3f4f7">
+<title>赛季 · 注册时间查询 · Nebula</title>
+<link rel="stylesheet" href="ui-kit.css">
+<link rel="stylesheet" href="tool-page.css">
+<style>
+  .q-tabs{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;padding:4px;background:var(--bg-2);border:1px solid var(--line);border-radius:14px;margin-top:4px}
+  .q-tabs button{height:38px;border-radius:10px;font-size:11.5px;font-weight:800;color:var(--muted);transition:.2s var(--ease)}
+  .q-tabs button.on{background:var(--surface-solid);color:var(--ink);box-shadow:0 4px 12px -6px rgba(0,0,0,.28)}
+  .q-pane{display:none}
+  .q-pane.on{display:block;animation:nbFade .22s var(--ease)}
+  @keyframes nbFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  .q-hero-input{display:flex;gap:8px;margin-top:2px}
+  .q-hero-input input{flex:1;min-width:0;height:52px;padding:0 14px;border-radius:14px;border:1px solid var(--line-strong);background:var(--bg-2);font-size:16px;font-weight:800;letter-spacing:.02em;outline:none}
+  .q-hero-input input:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+  .q-hero-input .btn{--btn-h:52px;padding:0 18px;border-radius:14px}
+
+  .q-res{margin-top:14px;border-radius:18px;border:1px solid var(--line);background:var(--bg-2);padding:14px;display:none}
+  .q-res.show{display:block;animation:nbFade .25s var(--ease)}
+  .q-res-top{display:flex;align-items:center;gap:10px;padding-bottom:12px;border-bottom:1px dashed var(--line)}
+  .q-season{font-size:30px;font-weight:900;letter-spacing:-.04em;line-height:1;color:var(--accent)}
+  .q-season small{font-size:10px;font-weight:800;color:var(--faint);letter-spacing:.08em;display:block;margin-bottom:4px}
+  .q-date{margin-left:auto;text-align:right}
+  .q-date b{display:block;font-size:20px;font-weight:900;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .q-date span{display:block;font-size:9px;color:var(--faint);font-weight:700;margin-top:3px}
+  .q-res-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+  .q-cell{min-width:0}
+  .q-cell span{display:block;font-size:8.5px;color:var(--faint);font-weight:750;margin-bottom:3px}
+  .q-cell b{display:block;font-size:11.5px;font-weight:850;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .q-res-note{margin-top:11px;font-size:9px;line-height:1.55;color:var(--faint)}
+  .q-err{margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--bad-soft);color:var(--bad);font-size:10.5px;font-weight:700;display:none}
+  .q-err.show{display:block}
+
+  .q-drop{border:2px dashed var(--line-strong);border-radius:16px;padding:20px 14px;text-align:center;background:var(--bg-2);cursor:pointer;transition:.2s}
+  .q-drop:active{border-color:var(--accent);background:var(--accent-soft)}
+  .q-drop .ic{width:26px;height:26px;margin:0 auto 7px;color:var(--accent);opacity:.8}
+  .q-drop b{display:block;font-size:11.5px;font-weight:850}
+  .q-drop small{display:block;margin-top:3px;font-size:9px;color:var(--faint)}
+  .q-file{margin-top:9px;font-size:9.5px;color:var(--muted);font-weight:700;word-break:break-all}
+
+  .q-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .q-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .q-label{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:850;color:var(--muted);margin:0 0 6px}
+  .q-label .ic{width:13px;height:13px;color:var(--faint)}
+
+  .q-previews{display:grid;gap:10px;margin-top:12px}
+  .q-pv label{display:flex;align-items:center;justify-content:space-between;font-size:9.5px;font-weight:800;color:var(--faint);margin-bottom:5px}
+  .q-pv textarea{width:100%;height:118px;resize:vertical;padding:10px 11px;border-radius:12px;border:1px solid var(--line);background:var(--bg-2);font-family:ui-monospace,monospace;font-size:10.5px;line-height:1.6;outline:none;white-space:pre;overflow:auto}
+  .q-pv textarea:focus{border-color:var(--accent)}
+  .q-pv.after textarea{color:var(--ok)}
+
+  .q-prog{height:4px;border-radius:2px;background:var(--bg-2);overflow:hidden;margin-top:10px;display:none}
+  .q-prog.show{display:block}
+  .q-prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .18s linear}
+
+  /* 赛季表网格 */
+  .q-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px;background:var(--bg-2);margin-top:10px}
+  .q-table{border-collapse:separate;border-spacing:0;width:100%;min-width:560px;font-variant-numeric:tabular-nums}
+  .q-table th,.q-table td{border-bottom:1px solid var(--line);padding:2px;text-align:center}
+  .q-table th{position:sticky;top:0;background:var(--surface-solid);font-size:9px;font-weight:850;color:var(--faint);height:26px;z-index:2}
+  .q-table th:first-child,.q-table td:first-child{position:sticky;left:0;background:var(--surface-solid);font-size:10px;font-weight:850;z-index:1;min-width:44px}
+  .q-table input{width:38px;height:26px;border:0;background:transparent;text-align:center;font-size:10.5px;font-weight:750;color:var(--ink);outline:none;border-radius:6px}
+  .q-table input:focus{background:var(--accent-soft);box-shadow:0 0 0 2px var(--accent-soft-2)}
+  .q-table td.empty input{color:var(--faint);opacity:.55}
+  .q-table td.bad input{color:var(--bad);background:var(--bad-soft)}
+  .q-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px;font-size:8.5px;color:var(--faint);font-weight:650}
+  .q-legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:3px;vertical-align:-1px}
+  .q-tools{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+
+  @media (max-width:520px){
+    .q-res-grid{grid-template-columns:repeat(2,1fr)}
+    .q-grid3{grid-template-columns:1fr 1fr}
+  }
+</style>
+</head>
+<body>
+
+<main class="tool-shell">
+  <div id="head"></div>
+
+  <div class="q-tabs" role="tablist">
+    <button type="button" data-tab="single" class="on" role="tab">排名查询</button>
+    <button type="button" data-tab="batch" role="tab">批量处理</button>
+    <button type="button" data-tab="table" role="tab">赛季表</button>
+  </div>
+
+  <!-- ============ 单查 ============ -->
+  <section class="q-pane on" id="pane-single">
+    <div class="panel">
+      <div class="panel-head">
+        <svg class="ic"><use href="#i-search"/></svg><b>输入排名或数字</b>
+        <span class="panel-sub">S1–S20 · 2015–2017</span>
+      </div>
+      <div class="q-hero-input">
+        <input id="rankInput" type="text" inputmode="numeric" autocomplete="off" placeholder="例如：1630000 或 12568477" enterkeyhint="search">
+        <button class="btn btn-primary" id="rankBtn" type="button">查询</button>
+      </div>
+      <div class="q-res" id="rankRes">
+        <div class="q-res-top">
+          <div>
+            <small>推测赛季</small>
+            <div class="q-season" id="resSeason">S1</div>
+          </div>
+          <div class="q-date">
+            <b id="resDate">2015-08-17</b>
+            <span>注册时间（日随机）</span>
+          </div>
+        </div>
+        <div class="q-res-grid">
+          <div class="q-cell"><span>提取数字</span><b id="resNum">—</b></div>
+          <div class="q-cell"><span>年份 / 月份</span><b id="resYM">—</b></div>
+          <div class="q-cell"><span>区间</span><b id="resRange">—</b></div>
+        </div>
+        <div class="q-res-note">月份由「赛季表」推得；日内随机生成，仅作参考，不代表官方真实注册日。</div>
+      </div>
+      <div class="q-err" id="rankErr"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><svg class="ic"><use href="#i-info"/></svg><b>反向查询</b><span class="panel-sub">年月 ⇄ 赛季</span></div>
+      <div class="q-grid3">
+        <div>
+          <div class="q-label"><svg class="ic"><use href="#i-calendar"/></svg>年</div>
+          <input id="revYear" type="number" min="2015" max="2025" value="2016" inputmode="numeric" style="width:100%;height:39px;border-radius:11px;border:1px solid var(--line);background:var(--bg-2);padding:0 10px;font-size:12px;font-weight:800">
+        </div>
+        <div>
+          <div class="q-label"><svg class="ic"><use href="#i-calendar"/></svg>月</div>
+          <input id="revMonth" type="number" min="1" max="12" value="3" inputmode="numeric" style="width:100%;height:39px;border-radius:11px;border:1px solid var(--line);background:var(--bg-2);padding:0 10px;font-size:12px;font-weight:800">
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button class="btn btn-ghost" id="revBtn" type="button" style="width:100%;--btn-h:39px;font-size:11px">查询赛季</button>
+        </div>
+      </div>
+      <div class="q-res-note" id="revOut" style="margin-top:10px">输入年月，查看对应赛季号。</div>
+    </div>
+  </section>
+
+  <!-- ============ 批量 ============ -->
+  <section class="q-pane" id="pane-batch">
+    <div class="panel">
+      <div class="panel-head"><svg class="ic"><use href="#i-upload"/></svg><b>导入数据</b><span class="panel-sub">txt / csv · ≤5 万行</span></div>
+      <div class="q-drop" id="dropZone">
+        <svg class="ic"><use href="#i-upload"/></svg>
+        <b>点击选择文件</b>
+        <small>或拖拽到这里 · 自动识别 UTF-8 / GBK</small>
+      </div>
+      <div class="q-file" id="fileInfo">尚未选择文件</div>
+      <div class="stat-grid" id="statGrid">
+        <div><b id="stTotal">0</b><span>导入行数</span></div>
+        <div><b id="stValid">0</b><span>有效行</span></div>
+        <div><b id="stFiltered">0</b><span>过滤 / 去重</span></div>
+        <div><b id="stChars">0</b><span>字符数</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><svg class="ic"><use href="#i-sliders"/></svg><b>处理设置</b></div>
+      <div class="q-grid2">
+        <div>
+          <div class="q-label"><svg class="ic"><use href="#i-list"/></svg>排名所在列</div>
+          <input id="targetCol" type="number" min="1" value="3" inputmode="numeric" style="width:100%;height:39px;border-radius:11px;border:1px solid var(--line);background:var(--bg-2);padding:0 10px;font-size:12px;font-weight:800">
+        </div>
+        <div>
+          <div class="q-label"><svg class="ic"><use href="#i-code"/></svg>分隔符</div>
+          <input id="separator" type="text" value="----" maxlength="12" style="width:100%;height:39px;border-radius:11px;border:1px solid var(--line);background:var(--bg-2);padding:0 10px;font-size:12px;font-weight:800">
+        </div>
+      </div>
+
+      <div class="q-label" style="margin-top:12px"><svg class="ic"><use href="#i-note"/></svg>备注展示</div>
+      <div class="seg" id="remarkSeg">
+        <button type="button" data-mode="inline">行尾追加</button>
+        <button type="button" data-mode="newline" class="on">另起一行</button>
+        <button type="button" data-mode="divider">带分割线</button>
+      </div>
+
+      <div class="q-label" style="margin-top:12px"><svg class="ic"><use href="#i-note"/></svg>自定义备注（可选）</div>
+      <input id="customRemark" type="text" placeholder="例如：已核实 / 兄弟号 / 待处理" maxlength="40" style="width:100%;height:39px;border-radius:11px;border:1px solid var(--line);background:var(--bg-2);padding:0 10px;font-size:12px;font-weight:700">
+
+      <div class="switch-row" style="margin-top:12px">
+        <span class="sr-copy"><b>自动去重</b><span>完全相同的行只处理一次</span></span>
+        <button class="switch" id="dedupeSw" type="button" role="switch" aria-checked="true" aria-label="自动去重"></button>
+      </div>
+
+      <div class="action-bar">
+        <button class="btn btn-primary" id="runBtn" type="button"><svg class="ic"><use href="#i-play"/></svg>开始批量查询</button>
+        <button class="btn btn-ghost" id="stopBtn" type="button" hidden>取消</button>
+      </div>
+      <div class="q-prog" id="prog"><i></i></div>
+      <div class="note-line" style="margin-top:10px"><svg class="ic"><use href="#i-shield"/></svg><span>全部在本机计算，不上传任何数据；每行单独生成随机日。</span></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <svg class="ic"><use href="#i-file"/></svg><b>预览</b>
+        <span class="panel-sub" id="pvMeta">前 30 行</span>
+      </div>
+      <div class="q-previews">
+        <div class="q-pv"><label>处理前 <span id="pvBeforeN">0</span></label><textarea id="pvBefore" readonly placeholder="导入文件后显示原始数据…"></textarea></div>
+        <div class="q-pv after"><label>处理后 <span id="pvAfterN">0</span></label><textarea id="pvAfter" readonly placeholder="查询后显示结果…"></textarea></div>
+      </div>
+      <div class="q-grid2" style="margin-top:12px">
+        <div>
+          <div class="q-label"><svg class="ic"><use href="#i-download"/></svg>导出文件名</div>
+          <input id="fileName" type="text" value="赛季查询结果" maxlength="60" style="width:100%;height:39px;border-radius:11px;border:1px solid var(--line);background:var(--bg-2);padding:0 10px;font-size:12px;font-weight:800">
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button class="btn btn-primary" id="exportBtn" type="button" style="width:100%;--btn-h:39px;font-size:11.5px"><svg class="ic"><use href="#i-download"/></svg>导出 TXT</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 赛季表 ============ -->
+  <section class="q-pane" id="pane-table">
+    <div class="panel">
+      <div class="panel-head">
+        <svg class="ic"><use href="#i-calendar"/></svg><b>年 × 月 → 赛季</b>
+        <span class="panel-sub">可直接改格子</span>
+      </div>
+      <div class="q-table-wrap"><table class="q-table" id="seasonTable"></table></div>
+      <div class="q-legend">
+        <span><i style="background:var(--ok)"></i>已填</span>
+        <span><i style="background:var(--bad)"></i>重复 / 异常</span>
+        <span><i style="background:var(--line-strong)"></i>空（该月无赛季）</span>
+        <span>2020-07 之后游戏内可直接看到年月，表中为年度制</span>
+      </div>
+      <div class="q-tools">
+        <button class="mini-btn" id="csvExport" type="button"><svg class="ic"><use href="#i-download"/></svg>导出 CSV</button>
+        <button class="mini-btn" id="tsvImport" type="button"><svg class="ic"><use href="#i-upload"/></svg>粘贴导入</button>
+        <button class="mini-btn" id="tableReset" type="button"><svg class="ic"><use href="#i-refresh"/></svg>恢复默认</button>
+      </div>
+      <div class="note-line" style="margin-top:10px"><svg class="ic"><use href="#i-info"/></svg><span>2015-08 起每月一季；前 20 季与你的排名区间表一一对应。2017-04 之后为新赛季体系，可自行校对。</span></div>
+    </div>
+  </section>
+
+  <div class="result-dock" id="dock">
+    <div class="rd-copy"><b id="dockTitle">0 行结果</b><span id="dockSub">尚未处理</span></div>
+    <button class="btn btn-primary" id="dockCopy" type="button">复制</button>
+    <button class="btn btn-ghost" id="dockExport" type="button">导出</button>
+  </div>
+</main>
+
+<script src="lib-io.js"></script>
+<script src="ui-kit.js"></script>
+<script src="app-core.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ================= 赛季表 ================= */
+  var DEFAULT_TABLE = {
+    2015: { 8: 1, 9: 2, 10: 3, 11: 4, 12: 5 },
+    2016: { 1: 6, 2: 7, 3: 8, 4: 9, 5: 10, 6: 11, 7: 12, 8: 13, 9: 14, 10: 15, 11: 16, 12: 17 },
+    2017: { 1: 18, 2: 19, 3: 20, 4: 21, 5: 1, 6: 2, 7: 3, 8: 4, 9: 5, 10: 6, 11: 7, 12: 8 },
+    2018: { 1: 9, 2: 10, 3: 11, 4: 12, 5: 13, 6: 14, 7: 1, 8: 2, 9: 3, 10: 4, 11: 5, 12: 6 },
+    2019: { 1: 7, 2: 8, 3: 9, 4: 10, 5: 11, 6: 12, 7: 13, 8: 1, 9: 2, 10: 3, 11: 4, 12: 5 },
+    2020: { 1: 6, 2: 7, 3: 8, 4: 9, 5: 10, 6: 11, 7: 1, 8: 2, 9: 3, 10: 4, 11: 5, 12: 6 },
+    2021: { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10, 11: 11, 12: 12 },
+    2022: { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10, 11: 11, 12: 12 },
+    2023: { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10, 11: 11, 12: 12 },
+    2024: { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10, 11: 11, 12: 12 },
+    2025: { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10, 11: 11, 12: 12 }
+  };
+  var RANK_INTERVALS = [
+    { s: 1, a: 0, b: 1630000 }, { s: 2, a: 1630001, b: 3450000 },
+    { s: 3, a: 3450001, b: 3850000 }, { s: 4, a: 3850001, b: 6550000 },
+    { s: 5, a: 6550001, b: 12568476 }, { s: 6, a: 12568477, b: 25370767 },
+    { s: 7, a: 25370768, b: 50000000 }, { s: 8, a: 50000001, b: 90000000 },
+    { s: 9, a: 90000001, b: 150000000 }, { s: 10, a: 150000001, b: 250000000 },
+    { s: 11, a: 250000001, b: 400000000 }, { s: 12, a: 400000001, b: 650000000 },
+    { s: 13, a: 650000001, b: 1000000000 }, { s: 14, a: 1000000001, b: 1500000000 },
+    { s: 15, a: 1500000001, b: 2100000000 }, { s: 16, a: 2100000001, b: 2800000000 },
+    { s: 17, a: 2800000001, b: 3600000000 }, { s: 18, a: 3600000001, b: 4500000000 },
+    { s: 19, a: 4500000001, b: 5500000000 }, { s: 20, a: 5500000001, b: 6600000000 }
+  ];
+
+  var table = loadTable();
+  var reverse = {};
+
+  function loadTable() {
+    try {
+      var raw = localStorage.getItem('nb_season_table');
+      if (raw) {
+        var o = JSON.parse(raw);
+        if (o && typeof o === 'object') return o;
+      }
+    } catch (e) { }
+    return JSON.parse(JSON.stringify(DEFAULT_TABLE));
+  }
+
+  function saveTable() {
+    try { localStorage.setItem('nb_season_table', JSON.stringify(table)); } catch (e) { }
+  }
+
+  function buildReverse() {
+    reverse = {};
+    var years = Object.keys(table).map(Number).sort(function (a, b) { return a - b; });
+    years.forEach(function (y) {
+      for (var m = 1; m <= 12; m++) {
+        var s = table[y] && table[y][m];
+        if (!s) continue;
+        if (!reverse[s]) reverse[s] = { y: y, m: m, candidates: [{ y: y, m: m }] };
+        else if (reverse[s].candidates.length < 12) reverse[s].candidates.push({ y: y, m: m });
+      }
+    });
+  }
+
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+  function daysInMonth(y, m) { return new Date(y, m, 0).getDate(); }
+
+  function randomDay(y, m) {
+    var days = daysInMonth(y, m);
+    var a = new Uint32Array(1);
+    if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(a);
+    else a[0] = Math.floor(Math.random() * 4294967296);
+    return (a[0] % days) + 1;
+  }
+
+  function findInterval(num) {
+    var lo = 0, hi = RANK_INTERVALS.length - 1;
+    while (lo <= hi) {
+      var mid = (lo + hi) >> 1, it = RANK_INTERVALS[mid];
+      if (num < it.a) hi = mid - 1;
+      else if (num > it.b) lo = mid + 1;
+      else return it;
+    }
+    return null;
+  }
+
+  function calc(num) {
+    var it = findInterval(num);
+    if (!it) return { ok: false, reason: num > RANK_INTERVALS[RANK_INTERVALS.length - 1].b ? 'over' : 'under' };
+    var ym = reverse[it.s];
+    if (!ym) return { ok: false, season: it.s, reason: 'no-ym' };
+    var day = randomDay(ym.y, ym.m);
+    return {
+      ok: true, season: it.s, y: ym.y, m: ym.m, day: day,
+      date: ym.y + '-' + pad2(ym.m) + '-' + pad2(day),
+      ymText: ym.y + '-' + pad2(ym.m),
+      range: NB.fmtNum(it.a) + ' – ' + NB.fmtNum(it.b),
+      candidates: ym.candidates
+    };
+  }
+
+  /* ================= 页头 ================= */
+  $('head').innerHTML = NB.toolHead({
+    icon: '<svg class="ic"><use href="#i-calendar"/></svg>',
+    kicker: 'SEASON LOOKUP',
+    title: '赛季 · 注册时间',
+    sub: '输入排名推算赛季与注册年月，日为随机生成；也可按年月反查赛季。全部本地计算。',
+    tags: ['S1–S20', '5 万行', '本地']
+  }) + NB.sprite();
+  NB.bindTheme();
+
+  /* ================= 标签切换 ================= */
+  document.querySelectorAll('.q-tabs button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('.q-tabs button').forEach(function (x) { x.classList.toggle('on', x === b); });
+      ['single', 'batch', 'table'].forEach(function (k) {
+        var el = $('pane-' + k);
+        if (el) el.classList.toggle('on', k === b.getAttribute('data-tab'));
+      });
+      NB.haptic(6);
+      if (b.getAttribute('data-tab') === 'table') renderTable();
+    });
+  });
+
+  /* ================= 单查 ================= */
+  function doSingle() {
+    var raw = $('rankInput').value.replace(/[^\d]/g, '');
+    var err = $('rankErr'), res = $('rankRes');
+    err.classList.remove('show');
+    if (!raw) {
+      err.textContent = '请输入有效的排名数字';
+      err.classList.add('show');
+      res.classList.remove('show');
+      return;
+    }
+    var num = parseInt(raw, 10);
+    var info = calc(num);
+    if (!info.ok) {
+      err.textContent = info.reason === 'over'
+        ? '排名 ' + NB.fmtNum(num) + ' 超出已知区间（最大 S20），可能是更晚赛季。'
+        : info.reason === 'no-ym'
+          ? '命中 S' + info.season + '，但赛季表里没有对应年月，请到「赛季表」补一格。'
+          : '未匹配到区间';
+      err.classList.add('show');
+      res.classList.remove('show');
+      return;
+    }
+    $('resSeason').textContent = 'S' + info.season;
+    $('resDate').textContent = info.date;
+    $('resNum').textContent = NB.fmtNum(num);
+    $('resYM').textContent = info.ymText;
+    $('resRange').textContent = info.range;
+    res.classList.add('show');
+    NB.haptic(10);
+  }
+  $('rankBtn').addEventListener('click', doSingle);
+  $('rankInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') doSingle(); });
+
+  /* 反查 */
+  $('revBtn').addEventListener('click', function () {
+    var y = parseInt($('revYear').value, 10);
+    var m = parseInt($('revMonth').value, 10);
+    var out = $('revOut');
+    if (!y || !m || m < 1 || m > 12) { out.textContent = '请输入 2015–2025 的年份与 1–12 的月份。'; return; }
+    var s = table[y] && table[y][m];
+    if (!s) { out.textContent = y + '-' + pad2(m) + ' 在表中为空（该月没有赛季记录）。'; return; }
+    var same = (reverse[s] && reverse[s].candidates) || [];
+    var others = same.filter(function (c) { return !(c.y === y && c.m === m); });
+    out.innerHTML = '<b style="color:var(--accent);font-size:13px">S' + s + '</b> · ' + y + '-' + pad2(m) +
+      (others.length ? '（同号还出现于：' + others.map(function (c) { return c.y + '-' + pad2(c.m); }).join('、') + '）' : '');
+    NB.haptic(8);
+  });
+
+  /* ================= 批量 ================= */
+  var state = { raw: [], valid: [], result: '', processed: [], mode: 'newline', busy: false, cancel: null };
+
+  function setStats(total, valid, filtered, chars) {
+    $('stTotal').textContent = NB.fmtNum(total);
+    $('stValid').textContent = NB.fmtNum(valid);
+    $('stFiltered').textContent = NB.fmtNum(filtered);
+    $('stChars').textContent = NB.fmtNum(chars);
+  }
+
+  function splitLines(text) {
+    return String(text).replace(/\r\n?/g, '\n').split('\n');
+  }
+
+  function ingest(text, label) {
+    var all = splitLines(text);
+    var lines = all.filter(function (l) { return l.trim() !== ''; });
+    var empty = all.length - lines.length;
+    if (lines.length > NB.MAX_ROWS) {
+      empty += lines.length - NB.MAX_ROWS;
+      lines = lines.slice(0, NB.MAX_ROWS);
+      NB.toast('超过 ' + NB.fmtNum(NB.MAX_ROWS) + ' 行，已截取前 ' + NB.fmtNum(NB.MAX_ROWS) + ' 行');
+    }
+    state.raw = lines;
+    var chars = text.length;
+    var unique = $('dedupeSw').getAttribute('aria-checked') === 'true' ? new Set(lines).size : lines.length;
+    setStats(lines.length, unique, empty + (lines.length - unique), chars);
+    $('pvBefore').value = lines.slice(0, 30).join('\n');
+    $('pvBeforeN').textContent = lines.length + ' 行';
+    $('pvAfter').value = '';
+    $('pvAfterN').textContent = '0 行';
+    $('fileInfo').textContent = label || ('已载入 ' + NB.fmtNum(lines.length) + ' 行');
+    $('dock').classList.remove('show');
+    state.result = '';
+    state.processed = [];
+  }
+
+  $('dropZone').addEventListener('click', function () {
+    NB.upload({
+      accept: '.txt,.csv,.log,.tsv,text/plain,text/csv',
+      onText: function (text, file) { ingest(text, '已导入 ' + file.name + ' · ' + NB.fmtNum(text.length) + ' 字符'); }
+    });
+  });
+
+  var dz = $('dropZone');
+  ['dragover', 'dragenter'].forEach(function (ev) {
+    dz.addEventListener(ev, function (e) { e.preventDefault(); dz.classList.add('drag'); });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    dz.addEventListener(ev, function (e) { e.preventDefault(); dz.classList.remove('drag'); });
+  });
+  dz.addEventListener('drop', function (e) {
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!f) return;
+    NB.importFile(f, { onText: function (t, file) { ingest(t, '已导入 ' + file.name + ' · ' + NB.fmtNum(t.length) + ' 字符'); } });
+  });
+
+  document.querySelectorAll('#remarkSeg button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('#remarkSeg button').forEach(function (x) { x.classList.toggle('on', x === b); });
+      state.mode = b.getAttribute('data-mode');
+    });
+  });
+
+  $('dedupeSw').addEventListener('click', function () {
+    var on = this.getAttribute('aria-checked') === 'true';
+    this.setAttribute('aria-checked', on ? 'false' : 'true');
+    if (state.raw.length) {
+      var unique = new Set(state.raw).size;
+      $('stValid').textContent = NB.fmtNum(on ? state.raw.length : unique);
+      $('stFiltered').textContent = NB.fmtNum(on ? 0 : state.raw.length - unique);
+    }
+  });
+
+  function buildNote(parts, custom) {
+    var auto = '';
+    if (parts && parts.season) auto = '[S' + parts.season + ' | ' + parts.date + ']';
+    var c = custom ? '[自定义: ' + custom + ']' : '';
+    return (auto + ' ' + c).trim();
+  }
+
+  function runBatch() {
+    if (state.busy) return;
+    if (!state.raw.length) { NB.toast('请先导入数据文件'); return; }
+    var col = parseInt($('targetCol').value, 10);
+    if (!col || col < 1) { NB.toast('列号必须大于 0'); return; }
+    var idx = col - 1;
+    var sep = $('separator').value || '----';
+    var custom = $('customRemark').value.trim();
+    var dedupe = $('dedupeSw').getAttribute('aria-checked') === 'true';
+    var seen = dedupe ? new Set() : null;
+
+    state.busy = true;
+    state.cancel = NB.canceller();
+    $('runBtn').disabled = true;
+    $('stopBtn').hidden = false;
+    $('prog').classList.add('show');
+    $('prog').firstElementChild.style.width = '0%';
+
+    var out = [];
+    var okCount = 0, noMatch = 0, dup = 0, bad = 0;
+
+    NB.chunked(state.raw, function (line, i) {
+      if (dedupe) {
+        if (seen.has(line)) { dup++; return null; }
+        seen.add(line);
+      }
+      var parts = line.split(sep);
+      var cell = idx < parts.length ? parts[idx] : '';
+      var num = parseInt(String(cell).replace(/[^\d]/g, ''), 10);
+      if (isNaN(num)) {
+        bad++;
+        if (state.mode === 'inline') out.push(line + ' [无有效排名]');
+        else if (state.mode === 'newline') { out.push(line); out.push('[无有效排名]'); }
+        else { out.push(line); out.push('---'); out.push('[无有效排名]'); }
+        return null;
+      }
+      var info = calc(num);
+      if (!info.ok) {
+        noMatch++;
+        var note = '[未匹配] ' + (custom ? '[自定义: ' + custom + ']' : '');
+        if (state.mode === 'inline') out.push(line + ' ' + note.trim());
+        else { out.push(line); out.push(note.trim()); }
+        return null;
+      }
+      okCount++;
+      var finalNote = buildNote(info, custom);
+      if (state.mode === 'inline') out.push(line + ' ' + finalNote);
+      else if (state.mode === 'newline') { out.push(line); out.push(finalNote); }
+      else { out.push(line); out.push('---'); out.push(finalNote); }
+      return null;
+    }, {
+      size: 2000,
+      signal: state.cancel,
+      onProgress: function (done, total) {
+        $('prog').firstElementChild.style.width = Math.round(done / total * 100) + '%';
+        $('dockTitle').textContent = '处理中 ' + NB.fmtNum(done) + ' / ' + NB.fmtNum(total);
+      }
+    }).then(function () {
+      state.busy = false;
+      state.result = out.join('\n');
+      state.processed = out;
+      $('runBtn').disabled = false;
+      $('stopBtn').hidden = true;
+      $('prog').classList.remove('show');
+      $('pvAfter').value = out.slice(0, 30).join('\n');
+      $('pvAfterN').textContent = out.length + ' 行';
+      setStats(state.raw.length, okCount, dup + bad, state.result.length);
+      $('dock').classList.add('show');
+      $('dockTitle').textContent = NB.fmtNum(out.length) + ' 行结果';
+      $('dockSub').textContent = '命中 ' + NB.fmtNum(okCount) + ' · 未匹配 ' + NB.fmtNum(noMatch) + ' · 去重 ' + NB.fmtNum(dup);
+      NB.toast('完成：' + NB.fmtNum(out.length) + ' 行');
+      NB.haptic(12);
+    }).catch(function (e) {
+      state.busy = false;
+      $('runBtn').disabled = false;
+      $('stopBtn').hidden = true;
+      $('prog').classList.remove('show');
+      if (e && e.message === 'CANCELLED') NB.toast('已取消');
+      else NB.toast('处理失败：' + (e && e.message || e));
+    });
+  }
+  $('runBtn').addEventListener('click', runBatch);
+  $('stopBtn').addEventListener('click', function () { if (state.cancel) state.cancel.cancel(); });
+
+  /* 导出 */
+  function exportNow() {
+    if (!state.result) { NB.toast('还没有可导出的结果'); return; }
+    NB.exportDialog({
+      text: state.result,
+      name: $('fileName').value || '赛季查询结果',
+      ext: 'txt',
+      meta: NB.fmtNum(state.processed.length) + ' 行'
+    });
+  }
+  $('exportBtn').addEventListener('click', exportNow);
+  $('dockExport').addEventListener('click', exportNow);
+  $('dockCopy').addEventListener('click', function () {
+    if (!state.result) return;
+    IO.copy(state.result).then(function (ok) { NB.toast(ok ? '已复制全部结果' : '复制失败'); });
+  });
+
+  /* ================= 赛季表编辑 ================= */
+  function renderTable() {
+    var wrap = $('seasonTable');
+    var years = Object.keys(table).map(Number).sort(function (a, b) { return a - b; });
+    var head = '<thead><tr><th>年</th>';
+    for (var m = 1; m <= 12; m++) head += '<th>' + m + '</th>';
+    head += '</tr></thead>';
+    var body = '<tbody>';
+    years.forEach(function (y) {
+      body += '<tr><td>' + y + '</td>';
+      for (var m = 1; m <= 12; m++) {
+        var v = table[y] && table[y][m];
+        body += '<td class="' + (v ? '' : 'empty') + '"><input type="number" min="0" max="999" value="' + (v || '') +
+          '" data-y="' + y + '" data-m="' + m + '" inputmode="numeric" aria-label="' + y + '年' + m + '月赛季"></td>';
+      }
+      body += '</tr>';
+    });
+    body += '</tbody>';
+    wrap.innerHTML = head + body;
+
+    wrap.querySelectorAll('input').forEach(function (inp) {
+      inp.addEventListener('input', function () {
+        var y = +this.getAttribute('data-y'), m = +this.getAttribute('data-m');
+        var v = parseInt(this.value, 10);
+        if (!table[y]) table[y] = {};
+        if (!v || v < 1) delete table[y][m];
+        else table[y][m] = v;
+        this.parentNode.classList.toggle('empty', !v || v < 1);
+        saveTable();
+        buildReverse();
+        validateTable();
+      });
+    });
+    validateTable();
+  }
+
+  function validateTable() {
+    var wrap = $('seasonTable');
+    wrap.querySelectorAll('td.bad').forEach(function (td) { td.classList.remove('bad'); });
+    var seen = {};
+    var bad = 0;
+    Object.keys(table).map(Number).sort(function (a, b) { return a - b; }).forEach(function (y) {
+      for (var m = 1; m <= 12; m++) {
+        var v = table[y] && table[y][m];
+        if (!v) continue;
+        var key = v;
+        if (seen[key] === undefined) seen[key] = y + '-' + m;
+      }
+    });
+    // 只标记明显异常：同一年内月份递增被破坏
+    var years = Object.keys(table).map(Number).sort(function (a, b) { return a - b; });
+    years.forEach(function (y) {
+      var prev = 0;
+      for (var m = 1; m <= 12; m++) {
+        var v = table[y] && table[y][m];
+        if (!v) continue;
+        if (prev && v < prev) {
+          var inp = document.querySelector('.q-table input[data-y="' + y + '"][data-m="' + m + '"]');
+          if (inp) { inp.parentNode.classList.add('bad'); bad++; }
+        }
+        prev = v;
+      }
+    });
+    return bad;
+  }
+
+  $('tableReset').addEventListener('click', function () {
+    IO.confirm({
+      title: '恢复默认赛季表？',
+      text: '会覆盖你手动改过的格子。',
+      okText: '恢复',
+      danger: true,
+      onOk: function () {
+        table = JSON.parse(JSON.stringify(DEFAULT_TABLE));
+        saveTable(); buildReverse(); renderTable(); NB.toast('已恢复默认');
+      }
+    });
+  });
+
+  $('csvExport').addEventListener('click', function () {
+    var years = Object.keys(table).map(Number).sort(function (a, b) { return a - b; });
+    var rows = [['年份', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']];
+    years.forEach(function (y) {
+      var r = [y];
+      for (var m = 1; m <= 12; m++) r.push(table[y] && table[y][m] ? table[y][m] : '');
+      rows.push(r);
+    });
+    NB.exportDialog({
+      text: rows.map(function (r) { return r.join(','); }).join('\n'),
+      name: '赛季表', ext: 'csv', meta: years.length + ' 年'
+    });
+  });
+
+  $('tsvImport').addEventListener('click', function () {
+    NB.textInput({
+      title: '粘贴赛季表（Excel 区域）',
+      placeholder: '年份\t1月\t2月\t…\t12月\n2016\t6\t7\t8\t9\t10\t11\t12\t13\t14\t15\t16\t17'
+    }).then(function (txt) {
+      if (!txt) return;
+      var lines = txt.replace(/\r/g, '').split('\n').filter(function (l) { return l.trim(); });
+      var added = 0, table2 = {};
+      lines.forEach(function (line) {
+        var cells = line.split(/\t|,/).map(function (s) { return s.trim(); });
+        var y = parseInt(cells[0], 10);
+        if (!y || y < 2000 || y > 2100) return;
+        table2[y] = {};
+        for (var m = 1; m <= 12; m++) {
+          var v = parseInt(cells[m], 10);
+          if (v > 0) { table2[y][m] = v; added++; }
+        }
+      });
+      if (!added) { NB.toast('没有识别到有效数据'); return; }
+      table = table2;
+      saveTable(); buildReverse(); renderTable();
+      NB.toast('已导入 ' + added + ' 个赛季格子');
+    });
+  });
+
+  /* ================= 启动 ================= */
+  buildReverse();
+  renderTable();
+  $('rankInput').focus();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-accent="indigo" data-motion="on" data-fx="on">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f3f4f7">
+<title>插件箱 · Nebula</title>
+<link rel="stylesheet" href="ui-kit.css">
+<link rel="stylesheet" href="tool-page.css">
+<style>
+  .ub-tools{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:2px 0 4px;}
+  .ub-tool{
+    position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:6px;
+    padding:12px 11px;border-radius:16px;border:1px solid var(--line);background:var(--surface);
+    text-align:left;box-shadow:var(--shadow-sm);overflow:hidden;transition:transform .18s var(--ease),border-color .2s,background .2s;
+  }
+  .ub-tool::after{content:"";position:absolute;right:-18px;top:-18px;width:54px;height:54px;border-radius:50%;background:var(--accent-soft);opacity:.6;transition:transform .3s var(--ease);}
+  .ub-tool .ub-ic{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);position:relative;z-index:1;}
+  .ub-tool .ub-ic .ic{width:16px;height:16px;}
+  .ub-tool b{position:relative;z-index:1;font-size:10.5px;font-weight:850;line-height:1.2;}
+  .ub-tool small{position:relative;z-index:1;font-size:8px;color:var(--faint);font-weight:650;line-height:1.3;}
+  .ub-tool:active{transform:scale(.96);}
+  .ub-tool.on{border-color:var(--accent-soft-2);background:linear-gradient(160deg,var(--accent-soft),var(--surface));}
+  .ub-tool.on::after{transform:scale(1.6);}
+  .ub-tool.on .ub-ic{background:var(--accent);color:var(--on-accent);}
+
+  .ub-panel{display:none;}
+  .ub-panel.on{display:block;animation:ubIn .25s var(--ease);}
+  @keyframes ubIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+
+  .ub-out{width:100%;min-height:150px;max-height:320px;border:1px solid var(--line);border-radius:14px;background:var(--bg-2);padding:13px 14px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;line-height:1.7;white-space:pre-wrap;word-break:break-all;overflow:auto;color:var(--ink);}
+  .ub-out.ok{color:var(--ok);}
+  .ub-out.bad{color:var(--bad);}
+  .ub-out.muted{color:var(--faint);}
+  .ub-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
+  .ub-actions .mini-btn{height:34px;font-size:10px;padding:0 11px;}
+  .ub-actions .mini-btn .ic{width:14px;height:14px;}
+  .ub-actions .spacer{flex:1;}
+
+  .ub-stat{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:10px;}
+  .ub-stat div{padding:9px 7px;border-radius:11px;background:var(--bg-2);border:1px solid var(--line);text-align:center;}
+  .ub-stat b{display:block;font-size:15px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.15;}
+  .ub-stat span{display:block;margin-top:2px;font-size:8px;color:var(--faint);font-weight:750;}
+  .ub-stat .good b{color:var(--ok);}
+  .ub-stat .warn b{color:var(--warn);}
+
+  .ub-bars{display:flex;flex-direction:column;gap:5px;margin-top:11px;}
+  .ub-bar{display:grid;grid-template-columns:76px 1fr 38px;align-items:center;gap:7px;font-size:8.5px;font-weight:750;color:var(--muted);}
+  .ub-bar span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:ui-monospace,monospace;}
+  .ub-bar i{display:block;height:6px;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--accent-2));min-width:3px;}
+  .ub-bar em{font-style:normal;text-align:right;color:var(--faint);font-variant-numeric:tabular-nums;}
+  .ub-bar .track{height:6px;border-radius:4px;background:var(--line);overflow:hidden;}
+
+  .ub-time-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .ub-chip-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px;}
+  .ub-chip{height:27px;padding:0 9px;border-radius:8px;border:1px solid var(--line);background:var(--bg-2);color:var(--muted);font-size:8.5px;font-weight:800;}
+  .ub-chip:active{transform:scale(.95);}
+  .ub-hash-row{display:flex;gap:7px;align-items:center;margin-top:10px;flex-wrap:wrap;}
+  .ub-hash-row .mini-btn{height:34px;font-size:9.5px;}
+  .ub-hash-row select{height:34px;border-radius:9px;font-size:10px;padding:0 9px;background:var(--bg-2);border:1px solid var(--line);}
+  .ub-code{
+    border:1px solid var(--line);border-radius:10px;background:var(--bg-2);
+    padding:10px 12px;font-family:ui-monospace,monospace;font-size:11px;line-height:1.6;
+    word-break:break-all;color:var(--ink);user-select:all;
+  }
+  .ub-hint{font-size:8.5px;color:var(--faint);font-weight:650;line-height:1.5;margin-top:7px;}
+  .ub-sec-title{display:flex;align-items:center;gap:7px;margin:14px 0 7px;font-size:10px;font-weight:850;color:var(--muted);}
+  .ub-sec-title .ic{width:14px;height:14px;color:var(--accent);}
+
+  @media (max-width:420px){
+    .ub-tools{grid-template-columns:repeat(2,1fr);}
+    .ub-time-grid{grid-template-columns:1fr;}
+    .ub-stat b{font-size:13px;}
+  }
+</style>
+</head>
+<body>
+
+<main class="tool-shell">
+  <div id="head"></div>
+
+  <div class="ub-tools" id="ubTools" role="tablist">
+    <button class="ub-tool on" type="button" data-p="json"><span class="ub-ic"><svg class="ic"><use href="#i-code"/></svg></span><b>JSON</b><small>格式化 / 压缩 / 转义</small></button>
+    <button class="ub-tool" type="button" data-p="time"><span class="ub-ic"><svg class="ic"><use href="#i-clock"/></svg></span><b>时间戳</b><small>秒 / 毫秒 / 日期</small></button>
+    <button class="ub-tool" type="button" data-p="stat"><span class="ub-ic"><svg class="ic"><use href="#i-chart"/></svg></span><b>文本统计</b><small>字数 / 行数 / 词频</small></button>
+    <button class="ub-tool" type="button" data-p="regex"><span class="ub-ic"><svg class="ic"><use href="#i-filter"/></svg></span><b>正则</b><small>测试 / 替换 / 提取</small></button>
+    <button class="ub-tool" type="button" data-p="hash"><span class="ub-ic"><svg class="ic"><use href="#i-shield"/></svg></span><b>哈希校验</b><small>SHA-1 / 256 / 512</small></button>
+    <button class="ub-tool" type="button" data-p="codec"><span class="ub-ic"><svg class="ic"><use href="#i-key"/></svg></span><b>编码</b><small>Base64 / URL / HTML</small></button>
+  </div>
+
+  <!-- ================= JSON ================= -->
+  <section class="ub-panel on" id="p-json">
+    <div class="panel">
+      <div class="panel-head"><svg class="ic"><use href="#i-code"/></svg><b>JSON 格式化 / 校验</b><span class="panel-sub" id="jsonState">等待输入</span></div>
+      <textarea class="editor" id="jsonIn" spellcheck="false" placeholder='{"name":"Nebula","v":9}'></textarea>
+      <div class="nb-count-row"><div class="nb-bar" id="jbar"><i></i></div><span class="nb-count" id="jcount">0 / 50,000 字</span></div>
+      <div class="ub-actions">
+        <button class="mini-btn accent" id="jFmt" type="button"><svg class="ic"><use href="#i-spark"/></svg>格式化</button>
+        <button class="mini-btn" id="jMin" type="button"><svg class="ic"><use href="#i-box"/></svg>压缩</button>
+        <button class="mini-btn" id="jEsc" type="button"><svg class="ic"><use href="#i-code"/></svg>转义</button>
+        <button class="mini-btn" id="jCopy" type="button"><svg class="ic"><use href="#i-copy"/></svg>复制</button>
+        <span class="spacer"></span>
+        <button class="mini-btn" id="jSave" type="button"><svg class="ic"><use href="#i-download"/></svg>导出…</button>
+        <button class="mini-btn ghost" id="jClear" type="button"><svg class="ic"><use href="#i-trash"/></svg>清空</button>
+      </div>
+      <div class="ub-sec-title"><svg class="ic"><use href="#i-list"/></svg>处理结果</div>
+      <div class="ub-out muted" id="jsonOut">格式化结果会显示在这里</div>
+    </div>
+  </section>
+
+  <!-- ================= 时间戳 ================= -->
+  <section class="ub-panel" id="p-time">
+    <div class="panel">
+      <div class="panel-head"><svg class="ic"><use href="#i-clock"/></svg><b>时间戳 ⇄ 日期</b><span class="panel-sub" id="nowTs">—</span></div>
+      <div class="ub-time-grid">
+        <div class="field"><label><svg class="ic"><use href="#i-clock"/></svg>时间戳（秒 / 毫秒）</label><input type="text" id="tsIn" placeholder="1730000000" inputmode="numeric"></div>
+        <div class="field"><label><svg class="ic"><use href="#i-calendar"/></svg>日期时间</label><input type="text" id="dtIn" placeholder="2026-11-12 15:00:00"></div>
+      </div>
+      <div class="ub-chip-row">
+        <button class="ub-chip" type="button" data-ts="today0">今天 0 点</button>
+        <button class="ub-chip" type="button" data-ts="now">现在</button>
+        <button class="ub-chip" type="button" data-ts="day30">30 天前</button>
+        <button class="ub-chip" type="button" data-ts="year0">今年 1 月 1 日</button>
+      </div>
+      <div class="ub-actions">
+        <button class="mini-btn accent" id="tsToDate" type="button"><svg class="ic"><use href="#i-arrow"/></svg>时间戳 → 日期</button>
+        <button class="mini-btn" id="dateToTs" type="button"><svg class="ic"><use href="#i-arrow"/></svg>日期 → 时间戳</button>
+        <span class="spacer"></span>
+        <button class="mini-btn" id="timeCopy" type="button"><svg class="ic"><use href="#i-copy"/></svg>复制</button>
+        <button class="mini-btn ghost" id="timeSave" type="button"><svg class="ic"><use href="#i-download"/></svg>导出…</button>
+      </div>
+      <div class="ub-sec-title"><svg class="ic"><use href="#i-list"/></svg>转换结果</div>
+      <div class="ub-out muted" id="timeOut">支持秒与毫秒，自动识别。</div>
+    </div>
+  </section>
+
+  <!-- ================= 统计 ================= -->
+  <section class="ub-panel" id="p-stat">
+    <div class="panel">
+      <div class="panel-head"><svg class="ic"><use href="#i-chart"/></svg><b>文本统计</b><span class="panel-sub">本地计算</span></div>
+      <textarea class="editor" id="statIn" spellcheck="false" placeholder="粘贴文本，自动统计字数、行数、词频…"></textarea>
+      <div class="nb-count-row"><div class="nb-bar" id="sbar"><i></i></div><span class="nb-count" id="scount">0 / 50,000 字</span></div>
+      <div class="ub-stat">
+        <div><b id="sChars">0</b><span>字符</span></div>
+        <div><b id="sNoSpace">0</b><span>不含空白</span></div>
+        <div><b id="sLines">0</b><span>行数</span></div>
+        <div class="good"><b id="sWords">0</b><span>去重词</span></div>
+      </div>
+      <div class="ub-sec-title"><svg class="ic"><use href="#i-chart"/></svg>词频 Top 8</div>
+      <div class="ub-bars" id="statBars"></div>
+      <div class="ub-actions">
+        <span class="spacer"></span>
+        <button class="mini-btn" id="statCopy" type="button"><svg class="ic"><use href="#i-copy"/></svg>复制报告</button>
+        <button class="mini-btn" id="statSave" type="button"><svg class="ic"><use href="#i-download"/></svg>导出…</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 正则 ================= -->
+  <section class="ub-panel" id="p-regex">
+    <div class="panel">
+      <div class="panel-head"><svg class="ic"><use href="#i-filter"/></svg><b>正则测试</b><span class="panel-sub" id="rxState">—</span></div>
+      <div class="field-grid">
+        <div class="field full"><label><svg class="ic"><use href="#i-code"/></svg>表达式</label><input type="text" id="rxPat" class="rx" placeholder="\d{3,}" autocomplete="off" spellcheck="false"></div>
+        <div class="field"><label><svg class="ic"><use href="#i-sliders"/></svg>修饰符</label><input type="text" id="rxFlags" value="g" maxlength="6" autocomplete="off" spellcheck="false"></div>
+        <div class="field"><label><svg class="ic"><use href="#i-refresh"/></svg>替换为（可选）</label><input type="text" id="rxRep" placeholder="$&" autocomplete="off" spellcheck="false"></div>
+      </div>
+      <textarea class="editor" id="rxIn" spellcheck="false" style="margin-top:10px" placeholder="粘贴待匹配文本…"></textarea>
+      <div class="ub-actions">
+        <button class="mini-btn accent" id="rxRun" type="button"><svg class="ic"><use href="#i-play"/></svg>测试</button>
+        <button class="mini-btn" id="rxRepBtn" type="button"><svg class="ic"><use href="#i-refresh"/></svg>替换</button>
+        <span class="spacer"></span>
+        <button class="mini-btn" id="rxCopy" type="button"><svg class="ic"><use href="#i-copy"/></svg>复制</button>
+        <button class="mini-btn ghost" id="rxSave" type="button"><svg class="ic"><use href="#i-download"/></svg>导出…</button>
+      </div>
+      <div class="ub-sec-title"><svg class="ic"><use href="#i-list"/></svg>匹配结果</div>
+      <div class="ub-out muted" id="rxOut">匹配结果会显示在这里</div>
+    </div>
+  </section>
+
+  <!-- ================= 哈希 ================= -->
+  <section class="ub-panel" id="p-hash">
+    <div class="panel">
+      <div class="panel-head"><svg class="ic"><use href="#i-shield"/></svg><b>哈希校验</b><span class="panel-sub">SHA · 本地</span></div>
+      <textarea class="editor" id="hashIn" spellcheck="false" placeholder="粘贴文本计算哈希…"></textarea>
+      <div class="nb-count-row"><div class="nb-bar" id="hbar"><i></i></div><span class="nb-count" id="hcount">0 / 50,000 字</span></div>
+      <div class="ub-hash-row">
+        <select id="hashAlgo" aria-label="哈希算法">
+          <option value="SHA-256">SHA-256（推荐）</option>
+          <option value="SHA-1">SHA-1</option>
+          <option value="SHA-384">SHA-384</option>
+          <option value="SHA-512">SHA-512</option>
+        </select>
+        <button class="mini-btn accent" id="hashRun" type="button"><svg class="ic"><use href="#i-spark"/></svg>计算文本哈希</button>
+        <button class="mini-btn" id="hashFileBtn" type="button"><svg class="ic"><use href="#i-upload"/></svg>选择文件</button>
+        <input type="file" id="hashFile" hidden>
+      </div>
+      <div class="ub-sec-title"><svg class="ic"><use href="#i-key"/></svg>计算结果</div>
+      <div class="ub-code" id="hashOut">—</div>
+      <div class="ub-hint" id="hashMeta">支持文本和任意文件；文件不会上传。</div>
+      <div class="ub-sec-title"><svg class="ic"><use href="#i-check"/></svg>对比校验</div>
+      <div class="field"><input type="text" id="hashExpect" placeholder="粘贴已知哈希，自动比对" autocomplete="off" spellcheck="false"></div>
+      <div class="ub-out muted" id="hashCmp" style="min-height:auto;margin-top:9px;padding:10px 12px">等待计算</div>
+      <div class="ub-actions">
+        <span class="spacer"></span>
+        <button class="mini-btn" id="hashCopy" type="button"><svg class="ic"><use href="#i-copy"/></svg>复制哈希</button>
+        <button class="mini-btn ghost" id="hashSave" type="button"><svg class="ic"><use href="#i-download"/></svg>导出…</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 编码 ================= -->
+  <section class="ub-panel" id="p-codec">
+    <div class="panel">
+      <div class="panel-head"><svg class="ic"><use href="#i-key"/></svg><b>编码 / 解码</b><span class="panel-sub">Base64 · URL · HTML</span></div>
+      <textarea class="editor" id="codecIn" spellcheck="false" placeholder="输入要编码或解码的文本…"></textarea>
+      <div class="nb-count-row"><div class="nb-bar" id="cbar"><i></i></div><span class="nb-count" id="ccount">0 / 50,000 字</span></div>
+      <div class="ub-actions">
+        <button class="mini-btn" data-act="b64e" type="button">Base64 编码</button>
+        <button class="mini-btn" data-act="b64d" type="button">Base64 解码</button>
+        <button class="mini-btn" data-act="urle" type="button">URL 编码</button>
+        <button class="mini-btn" data-act="urld" type="button">URL 解码</button>
+        <button class="mini-btn" data-act="html" type="button">HTML 转义</button>
+        <button class="mini-btn" data-act="uni" type="button">Unicode 转义</button>
+      </div>
+      <div class="ub-sec-title"><svg class="ic"><use href="#i-list"/></svg>结果</div>
+      <div class="ub-out muted" id="codecOut">结果会显示在这里</div>
+      <div class="ub-actions">
+        <button class="mini-btn" id="codecCopy" type="button"><svg class="ic"><use href="#i-copy"/></svg>复制</button>
+        <span class="spacer"></span>
+        <button class="mini-btn ghost" id="codecSave" type="button"><svg class="ic"><use href="#i-download"/></svg>导出…</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="lib-io.js"></script>
+<script src="ui-kit.js"></script>
+<script src="app-core.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  $('head').innerHTML = NB.toolHead({
+    icon: '<svg class="ic"><use href="#i-toolbox"/></svg>',
+    kicker: 'UTILITY BOX',
+    title: '插件箱',
+    sub: '六个离线小工具：JSON、时间戳、文本统计、正则、哈希校验、编码转换。所有内容都在本机处理。',
+    tags: ['离线', '无上传', '6 个工具']
+  }) + NB.sprite();
+  NB.bindTheme();
+
+  /* ---------------- 工具切换 ---------------- */
+  var panels = ['json', 'time', 'stat', 'regex', 'hash', 'codec'];
+  document.querySelectorAll('.ub-tool').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var k = b.getAttribute('data-p');
+      document.querySelectorAll('.ub-tool').forEach(function (x) { x.classList.toggle('on', x === b); });
+      panels.forEach(function (p) { $('p-' + p).classList.toggle('on', p === k); });
+      if (k === 'time') tickNow();
+      NB.haptic(5);
+    });
+  });
+
+  /* ---------------- JSON ---------------- */
+  NB.counter($('jsonIn'), $('jcount'));
+  function jOut(t, cls) {
+    var el = $('jsonOut');
+    el.textContent = t;
+    el.className = 'ub-out' + (cls ? ' ' + cls : '');
+  }
+  function parseJson() {
+    var s = $('jsonIn').value.trim();
+    if (!s) { jOut('先粘贴一段 JSON', 'bad'); return null; }
+    try {
+      var v = JSON.parse(s);
+      $('jsonState').textContent = '合法 JSON';
+      $('jsonState').style.color = 'var(--ok)';
+      return v;
+    } catch (e) {
+      jOut('解析失败：' + e.message, 'bad');
+      $('jsonState').textContent = '格式有误';
+      $('jsonState').style.color = 'var(--bad)';
+      return null;
+    }
+  }
+  $('jFmt').addEventListener('click', function () {
+    var v = parseJson(); if (v === null) return;
+    jOut(JSON.stringify(v, null, 2), 'ok');
+  });
+  $('jMin').addEventListener('click', function () {
+    var v = parseJson(); if (v === null) return;
+    jOut(JSON.stringify(v), 'ok');
+  });
+  $('jEsc').addEventListener('click', function () {
+    jOut(JSON.stringify($('jsonIn').value), 'ok');
+  });
+  $('jCopy').addEventListener('click', function () {
+    IO.copy($('jsonOut').textContent).then(function (ok) { NB.toast(ok ? '已复制' : '复制失败'); });
+  });
+  $('jSave').addEventListener('click', function () {
+    var t = $('jsonOut').textContent;
+    if (!t || t.indexOf('会显示在这里') >= 0) { NB.toast('还没有结果'); return; }
+    NB.exportDialog({ text: t, name: 'JSON_' + NB.stamp(), ext: 'json', mime: 'application/json;charset=utf-8', meta: t.length + ' 字符' });
+  });
+  $('jClear').addEventListener('click', function () {
+    $('jsonIn').value = ''; jOut('格式化结果会显示在这里', 'muted');
+    $('jsonIn').dispatchEvent(new Event('input', { bubbles: true }));
+    $('jsonState').textContent = '等待输入'; $('jsonState').style.color = '';
+  });
+
+  /* ---------------- 时间戳 ---------------- */
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function fmtDate(d) {
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' +
+      pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+  }
+  function tickNow() { $('nowTs').textContent = fmtDate(new Date()); }
+  tickNow();
+  setInterval(tickNow, 1000);
+
+  function tsToDate() {
+    var raw = $('tsIn').value.trim();
+    if (!/^\d+$/.test(raw)) { $('timeOut').textContent = '请输入纯数字时间戳（秒或毫秒）'; $('timeOut').className = 'ub-out bad'; return; }
+    var n = parseInt(raw, 10);
+    if (raw.length <= 10) n *= 1000;
+    var d = new Date(n);
+    if (isNaN(d.getTime())) { $('timeOut').textContent = '无法识别的时间戳'; $('timeOut').className = 'ub-out bad'; return; }
+    $('timeOut').textContent = '本地：' + fmtDate(d) + '\nUTC ：' + d.toISOString() + '\n秒  ：' + Math.floor(n / 1000) + '\n毫秒：' + n;
+    $('timeOut').className = 'ub-out ok';
+    $('dtIn').value = fmtDate(d);
+  }
+  function dateToTs() {
+    var s = $('dtIn').value.trim().replace(/\//g, '-');
+    var d = new Date(s.replace(' ', 'T'));
+    if (isNaN(d.getTime())) { $('timeOut').textContent = '日期格式例如 2026-11-12 15:00:00'; $('timeOut').className = 'ub-out bad'; return; }
+    var ms = d.getTime();
+    $('timeOut').textContent = '秒  ：' + Math.floor(ms / 1000) + '\n毫秒：' + ms + '\n本地：' + fmtDate(d);
+    $('timeOut').className = 'ub-out ok';
+    $('tsIn').value = String(Math.floor(ms / 1000));
+  }
+  $('tsToDate').addEventListener('click', tsToDate);
+  $('dateToTs').addEventListener('click', dateToTs);
+  document.querySelectorAll('.ub-chip[data-ts]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var k = b.getAttribute('data-ts'), d = new Date();
+      if (k === 'today0') d.setHours(0, 0, 0, 0);
+      else if (k === 'day30') { d.setDate(d.getDate() - 30); }
+      else if (k === 'year0') { d = new Date(d.getFullYear(), 0, 1, 0, 0, 0); }
+      $('dtIn').value = fmtDate(d);
+      $('tsIn').value = String(Math.floor(d.getTime() / 1000));
+      dateToTs();
+    });
+  });
+  $('timeCopy').addEventListener('click', function () {
+    IO.copy($('timeOut').textContent).then(function (ok) { NB.toast(ok ? '已复制' : '复制失败'); });
+  });
+  $('timeSave').addEventListener('click', function () {
+    var t = $('timeOut').textContent;
+    if (!t || t.indexOf('支持秒') >= 0) { NB.toast('还没有结果'); return; }
+    NB.exportDialog({ text: t, name: '时间戳转换_' + NB.stamp(), ext: 'txt', meta: t.length + ' 字符' });
+  });
+
+  /* ---------------- 统计 ---------------- */
+  NB.counter($('statIn'), $('scount'));
+  var statReport = '';
+  function computeStat() {
+    var t = $('statIn').value;
+    var chars = t.length;
+    var noSpace = t.replace(/\s/g, '').length;
+    var lines = t ? t.split(/\r?\n/).length : 0;
+    var words = {};
+    (t.toLowerCase().match(/[\u4e00-\u9fa5]{2,}|[a-z0-9_]+/g) || []).forEach(function (w) {
+      words[w] = (words[w] || 0) + 1;
+    });
+    var arr = Object.keys(words).map(function (k) { return [k, words[k]]; });
+    arr.sort(function (a, b) { return b[1] - a[1]; });
+    $('sChars').textContent = NB.fmtNum(chars);
+    $('sNoSpace').textContent = NB.fmtNum(noSpace);
+    $('sLines').textContent = NB.fmtNum(lines);
+    $('sWords').textContent = NB.fmtNum(arr.length);
+    var top = arr.slice(0, 8);
+    var max = top.length ? top[0][1] : 1;
+    $('statBars').innerHTML = top.map(function (x) {
+      return '<div class="ub-bar"><span title="' + NB.esc(x[0]) + '">' + NB.esc(x[0]) + '</span><span class="track"><i style="width:' + Math.max(6, Math.round(x[1] / max * 100)) + '%"></i></span><em>' + x[1] + '</em></div>';
+    }).join('') || '<div class="ub-hint">粘贴文本后自动统计。</div>';
+    statReport = '文本统计报告\n生成时间：' + new Date().toLocaleString('zh-CN') +
+      '\n\n字符数：' + chars + '\n不含空白：' + noSpace + '\n行数：' + lines + '\n去重词：' + arr.length +
+      '\n\n词频 Top 20：\n' + (arr.slice(0, 20).map(function (x, i) { return (i + 1) + '. ' + x[0] + ' × ' + x[1]; }).join('\n') || '（无）') +
+      '\n\n—— 原文 ——\n' + t;
+  }
+  $('statIn').addEventListener('input', NB.debounce(computeStat, 160));
+  computeStat();
+  $('statCopy').addEventListener('click', function () {
+    if (!$('statIn').value) { NB.toast('还没有内容'); return; }
+    IO.copy(statReport).then(function (ok) { NB.toast(ok ? '统计报告已复制' : '复制失败'); });
+  });
+  $('statSave').addEventListener('click', function () {
+    if (!$('statIn').value) { NB.toast('还没有内容'); return; }
+    NB.exportDialog({ text: statReport, name: '文本统计_' + NB.stamp(), ext: 'txt', meta: NB.fmtNum(statReport.length) + ' 字符' });
+  });
+
+  /* ---------------- 正则 ---------------- */
+  function runRegex() {
+    var pat = $('rxPat').value;
+    var flags = $('rxFlags').value;
+    var txt = $('rxIn').value;
+    var out = $('rxOut');
+    if (!pat) { out.textContent = '先写表达式'; out.className = 'ub-out bad'; return; }
+    var re;
+    try { re = new RegExp(pat, flags); }
+    catch (e) { out.textContent = '表达式有误：' + e.message; out.className = 'ub-out bad'; $('rxState').textContent = '有误'; return; }
+    if (flags.indexOf('g') >= 0) {
+      var m, res = [], guard = 0;
+      while ((m = re.exec(txt)) !== null && guard++ < 5000) {
+        res.push((m.index + 1) + ': ' + JSON.stringify(m[0]) + (m.length > 1 ? '  →  ' + m.slice(1).join(' | ') : ''));
+        if (m[0] === '') re.lastIndex++;
+      }
+      out.textContent = res.length ? ('共 ' + res.length + ' 处匹配\n' + res.join('\n')) : '没有匹配';
+      out.className = 'ub-out ' + (res.length ? 'ok' : 'muted');
+      $('rxState').textContent = res.length + ' 处匹配';
+    } else {
+      var r = re.exec(txt);
+      out.textContent = r ? ('匹配："' + r[0] + '"\n位置：' + (r.index + 1) + (r.length > 1 ? '\n分组：' + r.slice(1).join(' | ') : '')) : '没有匹配';
+      out.className = 'ub-out ' + (r ? 'ok' : 'muted');
+      $('rxState').textContent = r ? '匹配' : '无匹配';
+    }
+  }
+  $('rxRun').addEventListener('click', runRegex);
+  $('rxRepBtn').addEventListener('click', function () {
+    var pat = $('rxPat').value, flags = $('rxFlags').value, txt = $('rxIn').value, rep = $('rxRep').value;
+    if (!pat) { NB.toast('先写表达式'); return; }
+    try {
+      if (flags.indexOf('g') < 0) flags += 'g';
+      var re = new RegExp(pat, flags);
+      $('rxOut').textContent = txt.replace(re, rep);
+      $('rxOut').className = 'ub-out ok';
+      $('rxState').textContent = '已替换';
+    } catch (e) { $('rxOut').textContent = '替换失败：' + e.message; $('rxOut').className = 'ub-out bad'; }
+  });
+  $('rxCopy').addEventListener('click', function () {
+    IO.copy($('rxOut').textContent).then(function (ok) { NB.toast(ok ? '已复制' : '复制失败'); });
+  });
+  $('rxSave').addEventListener('click', function () {
+    NB.exportDialog({ text: $('rxOut').textContent, name: '正则结果_' + NB.stamp(), ext: 'txt', meta: $('rxState').textContent });
+  });
+
+  /* ---------------- 哈希 ---------------- */
+  NB.counter($('hashIn'), $('hcount'));
+  var hashValue = '';
+  function bytesHex(buf) {
+    return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+  }
+  function computeHash() {
+    var text = $('hashIn').value;
+    if (!text) { NB.toast('先输入文本'); return; }
+    if (!(window.crypto && crypto.subtle)) { NB.toast('当前环境不支持 WebCrypto'); return; }
+    var algo = $('hashAlgo').value;
+    $('hashMeta').textContent = '计算中…';
+    crypto.subtle.digest(algo, new TextEncoder().encode(text)).then(function (buf) {
+      hashValue = bytesHex(buf);
+      $('hashOut').textContent = hashValue;
+      $('hashMeta').textContent = algo + ' · 文本 ' + NB.fmtNum(text.length) + ' 字符';
+      compareHash();
+      NB.haptic(7);
+    }).catch(function (e) { NB.toast('计算失败：' + e.message); });
+  }
+  $('hashRun').addEventListener('click', computeHash);
+  $('hashAlgo').addEventListener('change', function () {
+    if (hashValue) computeHash();
+  });
+  $('hashFileBtn').addEventListener('click', function () { $('hashFile').click(); });
+  $('hashFile').addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    if (!f) return;
+    if (!(window.crypto && crypto.subtle)) { NB.toast('当前环境不支持 WebCrypto'); return; }
+    var algo = $('hashAlgo').value;
+    $('hashMeta').textContent = '读取文件…';
+    f.arrayBuffer().then(function (buf) {
+      return crypto.subtle.digest(algo, buf);
+    }).then(function (buf) {
+      hashValue = bytesHex(buf);
+      $('hashOut').textContent = hashValue;
+      $('hashMeta').textContent = algo + ' · ' + f.name + ' · ' + IO.fmtBytes(f.size);
+      compareHash();
+    }).catch(function (e) { NB.toast('读取失败：' + e.message); });
+    this.value = '';
+  });
+  function compareHash() {
+    var expect = $('hashExpect').value.trim().toLowerCase();
+    if (!expect) { $('hashCmp').textContent = '等待比对'; $('hashCmp').className = 'ub-out muted'; return; }
+    if (!hashValue) { $('hashCmp').textContent = '先计算哈希'; $('hashCmp').className = 'ub-out muted'; return; }
+    if (expect === hashValue) {
+      $('hashCmp').textContent = '✅ 哈希一致，文件/文本没有被改动';
+      $('hashCmp').className = 'ub-out ok';
+    } else {
+      $('hashCmp').textContent = '❌ 哈希不一致\n期望：' + expect + '\n实际：' + hashValue;
+      $('hashCmp').className = 'ub-out bad';
+    }
+  }
+  $('hashExpect').addEventListener('input', compareHash);
+  $('hashCopy').addEventListener('click', function () {
+    if (!hashValue) { NB.toast('还没有哈希'); return; }
+    IO.copy(hashValue).then(function (ok) { NB.toast(ok ? '哈希已复制' : '复制失败'); });
+  });
+  $('hashSave').addEventListener('click', function () {
+    if (!hashValue) { NB.toast('还没有哈希'); return; }
+    NB.exportDialog({ text: hashValue + '\n', name: 'SHA_' + NB.stamp(), ext: 'txt', meta: $('hashAlgo').value });
+  });
+
+  /* ---------------- 编码 ---------------- */
+  NB.counter($('codecIn'), $('ccount'));
+  function cOut(t, cls) {
+    $('codecOut').textContent = t;
+    $('codecOut').className = 'ub-out' + (cls ? ' ' + cls : '');
+  }
+  function b64e(s) { return btoa(unescape(encodeURIComponent(s))); }
+  function b64d(s) { return decodeURIComponent(escape(atob(s.replace(/\s+/g, '')))); }
+  function uni(s) {
+    return s.replace(/[\u0080-\uFFFF]/g, function (c) { return '\\u' + ('0000' + c.charCodeAt(0).toString(16)).slice(-4); });
+  }
+  document.querySelectorAll('#p-codec .mini-btn[data-act]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var input = $('codecIn').value;
+      if (!input) { NB.toast('先输入内容'); return; }
+      var act = b.getAttribute('data-act');
+      try {
+        if (act === 'b64e') cOut(b64e(input), 'ok');
+        else if (act === 'b64d') cOut(b64d(input), 'ok');
+        else if (act === 'urle') cOut(encodeURIComponent(input), 'ok');
+        else if (act === 'urld') cOut(decodeURIComponent(input), 'ok');
+        else if (act === 'html') cOut(input.replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }), 'ok');
+        else if (act === 'uni') cOut(uni(input), 'ok');
+      } catch (e) { cOut('转换失败：' + e.message, 'bad'); }
+      NB.haptic(5);
+    });
+  });
+  $('codecCopy').addEventListener('click', function () {
+    IO.copy($('codecOut').textContent).then(function (ok) { NB.toast(ok ? '已复制' : '复制失败'); });
+  });
+  $('codecSave').addEventListener('click', function () {
+    NB.exportDialog({ text: $('codecOut').textContent, name: '编码结果_' + NB.stamp(), ext: 'txt', meta: NB.fmtNum($('codecOut').textContent.length) + ' 字符' });
+  });
+})();
+</script>
+</body>
+</html>

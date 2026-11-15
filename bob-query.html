@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-accent="indigo" data-motion="on" data-fx="on">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f3f4f7">
+<title>球球查询器 · Nebula</title>
+<link rel="stylesheet" href="ui-kit.css">
+<link rel="stylesheet" href="tool-page.css">
+<style>
+  [hidden]{display:none !important;}
+  .bq-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px;}
+  .bq-status{display:flex;align-items:center;gap:7px;margin-top:10px;padding:7px 10px;border-radius:11px;
+    background:var(--accent-soft);border:1px solid var(--accent-soft-2);font-size:10.5px;font-weight:700;color:var(--ink-2);}
+  .dot-live{width:7px;height:7px;border-radius:50%;flex:none;background:var(--faint);}
+  .bq-status.ok .dot-live{background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.16);animation:bqPulse 1.8s ease-in-out infinite;}
+  .bq-status.bad .dot-live{background:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.16);}
+  .bq-status.testing .dot-live{background:var(--accent);animation:bqPulse 1s ease-in-out infinite;}
+  @keyframes bqPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.82)}}
+  .bq-status-btn{margin-left:auto;flex:none;border:0;background:transparent;color:var(--accent);font:inherit;font-size:10px;font-weight:800;padding:2px 4px;border-radius:7px;}
+  .bq-status-btn:active{background:var(--accent-soft-2);}
+  .bq-tags .tag{height:20px;font-size:8.5px;}
+  .bq-seg{margin-bottom:14px;}
+  .bq-label{display:flex;align-items:center;gap:6px;margin-bottom:7px;font-size:10px;font-weight:850;color:var(--muted);}
+  .bq-label .ic{width:13px;height:13px;color:var(--faint);}
+  .bq-input-row{display:flex;gap:8px;align-items:stretch;}
+  .bq-input{
+    flex:1;min-width:0;height:46px;padding:0 13px;border-radius:13px;
+    border:1px solid var(--line-strong);background:var(--bg-2);color:var(--ink);
+    font-size:16px;font-weight:750;outline:none;transition:border-color .18s,box-shadow .18s;
+  }
+  .bq-input::placeholder{color:var(--faint);font-size:12px;font-weight:600;}
+  .bq-input:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft);}
+  .bq-input-row .btn{flex:none;height:46px;padding:0 18px;border-radius:13px;}
+  .bq-hint{margin-top:7px;font-size:9px;line-height:1.55;color:var(--faint);font-weight:650;}
+  .bq-count{font-size:9px;color:var(--faint);font-weight:750;font-variant-numeric:tabular-nums;}
+  .bq-run{width:100%;margin-top:10px;height:46px;border-radius:13px;}
+  .bq-run[disabled]{opacity:.55;}
+  .bq-note{
+    display:flex;align-items:flex-start;gap:7px;margin-top:12px;padding:9px 11px;
+    border-radius:11px;background:var(--accent-soft);color:var(--accent);
+    font-size:9px;line-height:1.6;font-weight:650;
+  }
+  .bq-note .ic{width:13px;height:13px;margin-top:1px;flex:none;}
+
+  /* 单个结果 */
+  .bq-profile{display:flex;align-items:center;gap:12px;padding:3px 0 13px;border-bottom:1px solid var(--line);}
+  .bq-avatar{
+    width:48px;height:48px;flex:none;border-radius:16px;display:grid;place-items:center;
+    background:linear-gradient(145deg,var(--accent-soft),var(--accent-soft-2));
+    border:1px solid var(--accent-soft-2);color:var(--accent);font-size:19px;font-weight:900;
+  }
+  .bq-profile-main{min-width:0;flex:1;}
+  .bq-profile-main small{display:block;font-size:8.5px;color:var(--faint);font-weight:800;letter-spacing:.04em;}
+  .bq-profile-main h2{margin:2px 0 2px;font-size:19px;line-height:1.15;font-weight:900;letter-spacing:-.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .bq-profile-main .qid{font-family:ui-monospace,SFMono-Regular,monospace;font-size:9.5px;color:var(--muted);font-weight:700;}
+  .bq-pill{flex:none;display:inline-flex;align-items:center;gap:4px;height:23px;padding:0 9px;border-radius:99px;font-size:9px;font-weight:850;}
+  .bq-pill.ok{background:var(--ok-soft);color:var(--ok);}
+  .bq-pill.bad{background:var(--bad-soft);color:var(--bad);}
+  .bq-pill.warn{background:var(--warn-soft);color:var(--warn);}
+  .bq-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+  .bq-cell{padding:9px 10px;border-radius:11px;background:var(--bg-2);border:1px solid var(--line);min-width:0;}
+  .bq-cell span{display:block;font-size:8px;color:var(--faint);font-weight:800;letter-spacing:.05em;}
+  .bq-cell b{display:block;margin-top:3px;font-size:11px;font-weight:850;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bq-cell b.ok{color:var(--ok);}
+  .bq-cell b.bad{color:var(--bad);}
+  .bq-meta{margin-top:11px;font-size:8.5px;line-height:1.55;color:var(--faint);font-weight:650;word-break:break-all;}
+
+  /* 批量结果 */
+  .bq-table{border:1px solid var(--line);border-radius:13px;overflow:hidden;background:var(--bg-2);}
+  .bq-th,.bq-tr{display:grid;grid-template-columns:24px minmax(0,1.12fr) minmax(0,1fr) minmax(0,.8fr) 50px;gap:5px;align-items:center;}
+  .bq-th{padding:7px 9px;background:var(--surface-2);border-bottom:1px solid var(--line);font-size:8px;font-weight:850;color:var(--faint);letter-spacing:.04em;}
+  .bq-tr{padding:8px 9px;border-bottom:1px solid var(--line);min-height:38px;}
+  .bq-tr:last-child{border-bottom:0;}
+  .bq-tr .idx{font-size:8px;color:var(--faint);font-variant-numeric:tabular-nums;font-weight:700;}
+  .bq-tr .q{font-size:9.5px;font-weight:850;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bq-tr .n,.bq-tr .id{font-size:9.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bq-tr .id{font-family:ui-monospace,SFMono-Regular,monospace;color:var(--muted);}
+  .bq-tr .st{font-size:8.5px;font-weight:850;text-align:right;white-space:nowrap;}
+  .bq-tr .st.ok{color:var(--ok);}
+  .bq-tr .st.bad{color:var(--bad);}
+  .bq-tr .st.warn{color:var(--warn);}
+  .bq-tr .st.pending{color:var(--faint);}
+  .bq-summary{display:flex;gap:9px;flex-wrap:wrap;margin-top:9px;font-size:9px;color:var(--faint);font-weight:700;}
+  .bq-summary b{color:var(--ink);}
+  .bq-actions{margin-top:10px;}
+
+  .bq-error{
+    display:flex;align-items:flex-start;gap:9px;padding:12px;border-radius:13px;
+    background:var(--bad-soft);border:1px solid transparent;
+  }
+  .bq-error .ic{width:19px;height:19px;color:var(--bad);flex:none;margin-top:1px;}
+  .bq-error b{display:block;font-size:11px;font-weight:900;color:var(--bad);}
+  .bq-error p{margin:3px 0 0;font-size:9.5px;line-height:1.55;color:var(--muted);font-weight:600;}
+  .bq-error button{margin-top:7px;font-size:9px;font-weight:850;color:var(--bad);text-decoration:underline;background:none;border:0;padding:0;}
+
+  .bq-about ul{margin:0;padding:0 0 0 16px;color:var(--muted);font-size:9.5px;line-height:1.8;font-weight:600;}
+  .bq-about li::marker{color:var(--accent);}
+  .bq-adv{margin-top:11px;padding-top:10px;border-top:1px solid var(--line);}
+  .bq-adv summary{cursor:pointer;font-size:9.5px;font-weight:850;color:var(--muted);}
+  .bq-adv label{display:block;margin:9px 0 5px;font-size:9px;font-weight:800;color:var(--faint);}
+  .bq-adv input{
+    width:100%;height:38px;padding:0 10px;border-radius:10px;border:1px solid var(--line-strong);
+    background:var(--bg-2);color:var(--ink);font-size:11px;outline:none;
+  }
+  .bq-adv input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .bq-adv p{margin:6px 0 0;font-size:8.5px;line-height:1.6;color:var(--faint);font-weight:600;}
+  @media (max-width:380px){
+    .bq-grid{grid-template-columns:1fr 1fr;}
+    .bq-input-row .btn{padding:0 14px;}
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-ball" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.6"/><path d="M4.6 8.8c4.5 2.1 10.3 2.1 14.8 0M4.6 15.2c4.5-2.1 10.3-2.1 14.8 0"/><ellipse cx="12" cy="12" rx="9" ry="3.6" transform="rotate(-24 12 12)"/><circle cx="19.3" cy="4.9" r="1.2"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></symbol>
+  <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 20 6v5.5c0 5-3.4 8.2-8 9.5-4.6-1.3-8-4.5-8-9.5V6z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17v.01"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3M14 9l3 3"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+</defs></svg>
+
+<main class="tool-shell">
+  <div class="tool-head-row">
+    <div class="tool-head-icon"><svg class="ic"><use href="#i-ball"/></svg></div>
+    <div class="tool-head">
+      <span class="kicker"><span class="dot"></span>BOB DATA QUERY</span>
+      <h1>球球查询器</h1>
+      <p>输入球球号或昵称，单个或批量核验官方公开账号信息。只查公开字段，不猜段位，不编战绩。</p>
+      <div class="bq-tags">
+        <span class="tag accent">官方公开接口</span>
+        <span class="tag">单查 / 批量</span>
+        <span class="tag">结果不留存</span>
+      </div>
+      <details class="bq-adv" id="netAdv" open>
+        <summary>网络设置 · 可修改</summary>
+        <label for="proxyBase">中转地址</label>
+        <input id="proxyBase" type="url" inputmode="url" autocomplete="off" placeholder="https://你的中转.example/api/proxy?key={key}">
+        <p>已预置你自己的中转（<code>{key}</code> 会替换成球球号或昵称），直接请求它取数据，不需要登录。改成中转给的完整链接也能用；清空即改为直连官方接口。查询词只发给你填写的地址，不使用公共代理。</p>
+      </details>
+      <div class="bq-status" id="netStatus">
+        <span class="dot-live" aria-hidden="true"></span>
+        <span id="netStatusText">正在检测中转…</span>
+        <button type="button" class="bq-status-btn" id="netTest">重新检测</button>
+      </div>
+    </div>
+  </div>
+
+  <section class="panel">
+    <div class="panel-head">
+      <svg class="ic"><use href="#i-search"/></svg>
+      <b>查询条件</b>
+      <span class="panel-sub">球球号或昵称</span>
+    </div>
+
+    <div class="seg bq-seg" id="modeSeg">
+      <button type="button" data-mode="single" class="on">单个查询</button>
+      <button type="button" data-mode="batch">批量查询</button>
+    </div>
+
+    <div id="singlePane">
+      <label class="bq-label" for="singleKey"><svg class="ic"><use href="#i-user"/></svg>球球号 / 昵称</label>
+      <div class="bq-input-row">
+        <input class="bq-input" id="singleKey" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="例如：123456 或 清风" enterkeyhint="search">
+        <button class="btn btn-primary" id="singleBtn" type="button">查询</button>
+      </div>
+      <div class="bq-hint">支持数字球球号和中文昵称；昵称需与游戏内完全一致。</div>
+    </div>
+
+    <div id="batchPane" hidden>
+      <div class="editor-wrap">
+        <textarea class="editor" id="batchInput" spellcheck="false" autocomplete="off" placeholder="每行一个球球号或昵称，最多 50 个&#10;123456&#10;清风&#10;顾辞"></textarea>
+      </div>
+      <div class="editor-bar">
+        <button class="mini-btn" id="batchPaste" type="button"><svg class="ic"><use href="#i-copy"/></svg>粘贴</button>
+        <button class="mini-btn" id="batchClear" type="button"><svg class="ic"><use href="#i-trash"/></svg>清空</button>
+        <span class="spacer"></span>
+        <span class="bq-count" id="batchCount">0 / 50</span>
+      </div>
+      <button class="btn btn-primary bq-run" id="batchBtn" type="button">批量查询</button>
+    </div>
+
+    <div class="bq-note">
+      <svg class="ic"><use href="#i-info"/></svg>
+      <span>查询只发送你输入的球球号/昵称。官方公开接口不返回等级、段位、最近战绩，本工具不会用假数据补齐。</span>
+    </div>
+  </section>
+
+  <section class="panel result-panel" id="resultPanel">
+    <div class="panel-head">
+      <svg class="ic"><use href="#i-table"/></svg>
+      <b>查询结果</b>
+      <span class="panel-sub" id="resultMeta">等待查询</span>
+    </div>
+    <div id="resultBody">
+      <div class="empty-state"><svg class="ic"><use href="#i-ball"/></svg>输入球球号或昵称<br>开始查询官方账号信息</div>
+    </div>
+    <div class="result-actions bq-actions" id="resultActions" hidden>
+      <button class="mini-btn" id="copyResult" type="button"><svg class="ic"><use href="#i-copy"/></svg>复制结果</button>
+      <button class="mini-btn" id="exportResult" type="button"><svg class="ic"><use href="#i-download"/></svg>导出 CSV</button>
+      <button class="mini-btn danger" id="clearResult" type="button"><svg class="ic"><use href="#i-trash"/></svg>清空结果</button>
+    </div>
+  </section>
+
+  <section class="panel bq-about">
+    <div class="panel-head">
+      <svg class="ic"><use href="#i-shield"/></svg>
+      <b>数据说明</b>
+      <span class="panel-sub">请先读这一小段</span>
+    </div>
+    <ul>
+      <li><b>公开字段：</b>昵称、球球号、账号状态、实名状态、黑名单、充值限制。</li>
+      <li><b>不包含：</b>等级、段位、杯数、最近战绩、皮肤库存。这些需要游戏内登录态，公开接口拿不到。</li>
+      <li><b>查询不到</b>不等于账号不存在，可能是昵称不完全一致、账号长期未登录或官方接口调整。</li>
+      <li>批量最多 50 个，逐个请求并留出间隔，避免被官方限流。</li>
+    </ul>
+
+  </section>
+</main>
+
+<script src="lib-io.js"></script>
+<script src="app-core.js"></script>
+<script src="ui-kit.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var API_HOST = 'https://webpay-api.battleofballs.com';
+  var API_APP = 'bfa3eq6sk5s9kxa5';
+  var API_VER = '0.1.1';
+  var API_SECRET = 'KApx7cy9qx0s4mg0ELvNr9XOovFf9ngu';
+  var MAX_BATCH = 50;
+  /* 服务端已签名的中转：只需球球号/昵称即可查。地址换一个就行，不用改代码。 */
+  var DEFAULT_PROXY = 'https://qq-proxy-123-e2asscvw.edgeone.cool/?eo_token=06001497bbb6835c41025094660493e2&eo_time=1793988935';
+  var FULL_BASE = 'https://qq-proxy-123-e2asscvw.edgeone.cool/api/proxy?key={key}';
+  var mode = 'single';
+  var busy = false;
+  var lastResults = [];
+  var batchResults = [];
+  var keyPromise = null;
+
+  function toast(msg, kind) {
+    if (window.UK && UK.toast) UK.toast(msg, kind);
+    else if (window.IO && IO.toast) IO.toast(msg, kind);
+  }
+  function esc(s) { return IO.escape(String(s == null ? '' : s)); }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function bool(v) { return v === true || v === 1 || v === '1'; }
+  function text(v) { return v == null || v === '' ? '—' : String(v); }
+
+  /* ---------------- 签名 ---------------- */
+  function noise6() {
+    var chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    var s = '';
+    for (var i = 0; i < 6; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+    return s;
+  }
+  function cmpParam(a, b) {
+    var n = Math.min(a.length, b.length);
+    for (var i = 0; i < n; i++) {
+      if (a.charCodeAt(i) !== b.charCodeAt(i)) return a.charCodeAt(i) - b.charCodeAt(i);
+    }
+    return a.length - b.length;
+  }
+  function hex(buf) {
+    var b = new Uint8Array(buf), out = '';
+    for (var i = 0; i < b.length; i++) out += ('0' + b[i].toString(16)).slice(-2);
+    return out.toUpperCase();
+  }
+  function getHmacKey() {
+    if (keyPromise) return keyPromise;
+    if (!window.crypto || !window.crypto.subtle) return Promise.reject(new Error('CRYPTO_UNAVAILABLE'));
+    var enc = new TextEncoder();
+    keyPromise = crypto.subtle.importKey(
+      'raw', enc.encode(API_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+    );
+    return keyPromise;
+  }
+  async function signedUrl(key) {
+    var rawKey = String(key);
+    var rawPath = '/api/v3/player/' + rawKey;
+    var reqPath = '/api/v3/player/' + encodeURIComponent(rawKey);
+    var params = [
+      'buyId=1',
+      'wssId=',
+      'app=' + API_APP,
+      'ver=' + API_VER,
+      'ts=' + Math.floor(Date.now() / 1000),
+      'noise=' + noise6()
+    ];
+    params.sort(cmpParam);
+    var qs = params.join('&');
+    var msg = 'GET&' + encodeURIComponent(rawPath.slice(1)) + '&' + qs;
+    var k = await getHmacKey();
+    var sig = await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(msg));
+    return API_HOST + reqPath + '?' + qs + '&sign=' + hex(sig);
+  }
+
+  /* ---------------- 网络 ---------------- */
+  /** 已是可直接请求的地址：要么是带 {key} 的中转模板，要么是拿来的完整链接。 */
+  function proxyFull() {
+    try {
+      var v = localStorage.getItem('bob_proxy');
+      if (v !== null) return String(v).trim();
+    } catch (e) { }
+    return FULL_BASE || DEFAULT_PROXY;
+  }
+  /** 去掉查询串/片段后的中转主机，用来判断走不走中转。 */
+  function proxyHost() {
+    try { return new URL(proxyFull()).host; } catch (e) { return ''; }
+  }
+  /** {key} 直接替换为球球号/昵称，不需要先换 cookie。 */
+  function viaProxy(url, key) {
+    var base = proxyFull().split('#')[0];
+    if (!base) return url;
+    var k = encodeURIComponent(key);
+    if (base.indexOf('{key}') >= 0) return base.replace('{key}', k);
+    if (base.indexOf('{url}') >= 0) return base.replace('{url}', encodeURIComponent(url));
+    /* 没占位符：把 key 接在后面。 */
+    return base + (base.indexOf('?') >= 0 ? '&' : '?') + 'key=' + k;
+  }
+  function fetchJSON(url, timeout) {
+    return new Promise(function (resolve, reject) {
+      var ctrl = null, timer = null, settled = false;
+      function fail(msg) { if (settled) return; settled = true; if (timer) clearTimeout(timer); reject(new Error(msg)); }
+      function done(data) { if (settled) return; settled = true; if (timer) clearTimeout(timer); resolve(data); }
+      /* 定时器不等 fetch 反应，时间到就直接报超时。 */
+      timer = setTimeout(function () {
+        if (ctrl) { try { ctrl.abort(); } catch (e) { } }
+        fail('请求超时');
+      }, timeout || 12000);
+      try { ctrl = new AbortController(); } catch (e) { ctrl = null; }
+      var opts = { cache: 'no-store', headers: { 'Accept': 'application/json' } };
+      if (ctrl) opts.signal = ctrl.signal;
+      var p;
+      try { p = fetch(url, opts); } catch (e) { return fail('请求失败'); }
+      if (!p || !p.then) return fail('当前环境不支持网络请求，请用系统浏览器打开');
+      p.then(function (res) {
+        if (!res) return fail('没有收到响应');
+        if (!res.ok) return fail('HTTP ' + res.status);
+        return res.text().then(function (txt) {
+          var data;
+          try { data = JSON.parse(txt); }
+          catch (e) { return fail('返回格式异常'); }
+          done(data);
+        });
+      }).catch(function (err) {
+        if (settled) return;
+        if (err && err.name === 'AbortError') fail('请求超时');
+        else fail('网络不可达（' + ((err && err.message) || err) + '）');
+      });
+    });
+  }
+  function sameHost(a, b) {
+    try { return new URL(a).host === new URL(b).host; } catch (e) { return false; }
+  }
+  async function officialJSON(url, key) {
+    var via = !!proxyHost() && proxyHost() !== 'webpay-api.battleofballs.com';
+    var errors = [];
+    if (via) {
+      try { return await fetchJSON(viaProxy(url, key), 10000); }
+      catch (e) { errors.push('中转：' + (e.message || e)); }
+    }
+    try { return await fetchJSON(url, via ? 6000 : 12000); }
+    catch (e) { errors.push(e.message || String(e)); }
+    throw new Error(errors.join('；'));
+  }
+
+  /* ---------------- 查询 ---------------- */
+  async function queryOne(key) {
+    var url;
+    try { url = await signedUrl(key); }
+    catch (e) {
+      if (e.message === 'CRYPTO_UNAVAILABLE') {
+        return { ok: false, status: 'crypto', msg: '当前环境不支持加密签名，请用系统浏览器打开本页。' };
+      }
+      return { ok: false, status: 'error', msg: '签名生成失败：' + (e.message || e) };
+    }
+    try {
+      var json = await officialJSON(url, key);
+      if (Number(json.code) === 0 && json.data) return { ok: true, data: json.data };
+      if (Number(json.code) === -1) return { ok: false, status: 'notfound', msg: json.message || '未找到对应玩家' };
+      if (Number(json.code) === 10003) return { ok: false, status: 'sign', msg: '签名校验失败，请检查手机时间后重试。' };
+      if (Number(json.code) === 10008) return { ok: false, status: 'denied', msg: '官方接口拒绝访问，可能触发了频率限制。' };
+      return { ok: false, status: 'error', msg: json.message || ('接口返回 code ' + json.code) };
+    } catch (e) {
+      var m = e && e.message ? e.message : String(e);
+      if (/Failed to fetch|NetworkError|Load failed|跨域/i.test(m)) {
+        return { ok: false, status: 'network', msg: '浏览器拦截了跨域请求，或当前网络不可达。可在下方「网络设置」填入自己的中转地址。' };
+      }
+      return { ok: false, status: 'network', msg: m };
+    }
+  }
+
+  function stateOf(d) {
+    if (Number(d.isBan) === 1) return { t: '封禁', c: 'bad' };
+    if (Number(d.isBlack) === 1) return { t: '黑名单', c: 'bad' };
+    return { t: '正常', c: 'ok' };
+  }
+  function realNameOf(d) { return bool(d.isAdult) ? '已实名' : '未实名'; }
+  function payOf(d) { return bool(d.webPayDisable) ? '受限' : '正常'; }
+
+  /* ---------------- 渲染 ---------------- */
+  function showEmpty(msg) {
+    $('resultBody').innerHTML = '<div class="empty-state"><svg class="ic"><use href="#i-ball"/></svg>' + msg + '</div>';
+    $('resultActions').hidden = true;
+    $('resultMeta').textContent = '等待查询';
+  }
+  function renderSingle(res, key) {
+    var body = $('resultBody');
+    lastResults = res.ok ? [res] : [];
+    $('resultActions').hidden = !res.ok;
+    if (!res.ok) {
+      $('resultMeta').textContent = '未找到结果';
+      body.innerHTML = '<div class="bq-error"><svg class="ic"><use href="#i-alert"/></svg><div><b>' +
+        (res.status === 'notfound' ? '未找到对应玩家' : '查询失败') + '</b><p>' + esc(res.msg || '') + '</p>' +
+        (res.status === 'network' ? '<button type="button" id="openNet">打开网络设置</button>' : '') +
+        '</div></div>';
+      var b = $('openNet');
+      if (b) b.addEventListener('click', function () { $('netAdv').open = true; $('netAdv').scrollIntoView({ behavior: 'smooth' }); });
+      return;
+    }
+    var d = res.data, st = stateOf(d), nm = text(d.name || key), qid = text(d.qqid);
+    $('resultMeta').textContent = '1 个结果 · 官方公开信息';
+    body.innerHTML =
+      '<div class="bq-profile">' +
+        '<div class="bq-avatar">' + esc(String(nm).charAt(0) || '球') + '</div>' +
+        '<div class="bq-profile-main"><small>昵称</small><h2>' + esc(nm) + '</h2><span class="qid">球球号 · ' + esc(qid) + '</span></div>' +
+        '<span class="bq-pill ' + st.c + '">' + st.t + '</span>' +
+      '</div>' +
+      '<div class="bq-grid">' +
+        '<div class="bq-cell"><span>账号状态</span><b class="' + st.c + '">' + st.t + '</b></div>' +
+        '<div class="bq-cell"><span>实名状态</span><b>' + realNameOf(d) + '</b></div>' +
+        '<div class="bq-cell"><span>黑名单</span><b class="' + (Number(d.isBlack) === 1 ? 'bad' : 'ok') + '">' + (Number(d.isBlack) === 1 ? '是' : '否') + '</b></div>' +
+        '<div class="bq-cell"><span>充值限制</span><b class="' + (bool(d.webPayDisable) ? 'bad' : 'ok') + '">' + payOf(d) + '</b></div>' +
+      '</div>' +
+      '<div class="bq-meta">查询词：<code>' + esc(key) + '</code> · 数据来自官方公开账号接口 · 不含等级 / 段位 / 战绩</div>';
+  }
+  function renderBatch() {
+    var body = $('resultBody');
+    if (!batchResults.length) { showEmpty('输入球球号或昵称<br>开始批量查询'); return; }
+    $('resultActions').hidden = false;
+    var ok = 0, nf = 0, fail = 0, pending = 0;
+    var rows = batchResults.map(function (r, i) {
+      if (r.state === 'pending' || r.state === 'querying') { pending++; return '<div class="bq-tr"><span class="idx">' + (i + 1) + '</span><span class="q">' + esc(r.key) + '</span><span class="n">…</span><span class="id">—</span><span class="st pending">' + (r.state === 'querying' ? '查询中' : '等待') + '</span></div>'; }
+      if (r.ok) {
+        ok++;
+        var d = r.data, st = stateOf(d);
+        return '<div class="bq-tr" title="' + esc(r.key) + '"><span class="idx">' + (i + 1) + '</span><span class="q">' + esc(r.key) + '</span><span class="n">' + esc(text(d.name)) + '</span><span class="id">' + esc(text(d.qqid)) + '</span><span class="st ' + st.c + '">' + st.t + '</span></div>';
+      }
+      if (r.status === 'notfound') nf++;
+      else fail++;
+      return '<div class="bq-tr" title="' + esc(r.msg || '') + '"><span class="idx">' + (i + 1) + '</span><span class="q">' + esc(r.key) + '</span><span class="n">—</span><span class="id">—</span><span class="st ' + (r.status === 'notfound' ? 'warn' : 'bad') + '">' + (r.status === 'notfound' ? '未找到' : '失败') + '</span></div>';
+    }).join('');
+    body.innerHTML = '<div class="bq-table"><div class="bq-th"><span>#</span><span>查询</span><span>昵称</span><span>球球号</span><span>状态</span></div>' + rows + '</div>' +
+      '<div class="bq-summary"><span>成功 <b>' + ok + '</b></span><span>未找到 <b>' + nf + '</b></span><span>失败 <b>' + fail + '</b></span>' + (pending ? '<span>进行中 <b>' + pending + '</b></span>' : '') + '</div>';
+    $('resultMeta').textContent = '共 ' + batchResults.length + ' 个 · 成功 ' + ok;
+    lastResults = batchResults;
+  }
+
+  /* ---------------- 单个 ---------------- */
+  async function runSingle() {
+    if (busy) return;
+    var key = $('singleKey').value.trim();
+    if (!key) { toast('先输入球球号或昵称'); $('singleKey').focus(); return; }
+    busy = true;
+    setBusy(true, 'single');
+    $('resultMeta').textContent = '查询中…';
+    $('resultBody').innerHTML = '<div class="empty-state"><svg class="ic"><use href="#i-ball"/></svg>正在查询官方接口…</div>';
+    var res = await queryOne(key);
+    busy = false;
+    setBusy(false);
+    renderSingle(res, key);
+  }
+
+  /* ---------------- 批量 ---------------- */
+  function parseKeys(quiet) {
+    var raw = $('batchInput').value.replace(/\r\n?/g, '\n').split('\n');
+    var seen = {}, out = [];
+    raw.forEach(function (s) {
+      s = s.trim();
+      if (!s || seen[s]) return;
+      seen[s] = 1; out.push(s);
+    });
+    if (out.length > MAX_BATCH) {
+      if (!quiet) toast('最多查询 ' + MAX_BATCH + ' 个，已截取前 ' + MAX_BATCH + ' 个');
+      out = out.slice(0, MAX_BATCH);
+    }
+    return out;
+  }
+  async function runBatch() {
+    if (busy) return;
+    var keys = parseKeys(false);
+    if (!keys.length) { toast('先输入至少一个球球号或昵称'); $('batchInput').focus(); return; }
+    busy = true;
+    setBusy(true, 'batch');
+    batchResults = keys.map(function (k) { return { key: k, state: 'pending' }; });
+    renderBatch();
+    var netFails = 0, stopped = false;
+    for (var i = 0; i < keys.length; i++) {
+      batchResults[i].state = 'querying';
+      $('resultMeta').textContent = '查询中 ' + (i + 1) + ' / ' + keys.length;
+      renderBatch();
+      var r = await queryOne(keys[i]);
+      batchResults[i] = Object.assign({ key: keys[i], state: 'done' }, r);
+      if (!r.ok && r.status === 'network') netFails++; else netFails = 0;
+      renderBatch();
+      if (netFails >= 2) {
+        for (var j = i + 1; j < keys.length; j++) {
+          batchResults[j] = { key: keys[j], state: 'done', ok: false, status: 'skipped', msg: '网络不可用，已停止' };
+        }
+        renderBatch();
+        $('resultMeta').textContent = '网络不可用，已停止';
+        stopped = true;
+        break;
+      }
+      if (i < keys.length - 1) await sleep(220);
+    }
+    busy = false;
+    setBusy(false);
+    if (!stopped) $('resultMeta').textContent = '共 ' + keys.length + ' 个 · 完成';
+  }
+
+  /* ---------------- 控件 ---------------- */
+  function setBusy(on, which) {
+    $('singleBtn').disabled = on;
+    $('batchBtn').disabled = on;
+    $('singleKey').disabled = on;
+    $('batchInput').disabled = on;
+    $('singleBtn').textContent = on && which === 'single' ? '查询中' : '查询';
+    $('batchBtn').textContent = on && which === 'batch' ? '查询中…' : '批量查询';
+  }
+  function setMode(next) {
+    mode = next;
+    Array.prototype.forEach.call(document.querySelectorAll('#modeSeg button'), function (b) {
+      b.classList.toggle('on', b.getAttribute('data-mode') === next);
+    });
+    $('singlePane').hidden = next !== 'single';
+    $('batchPane').hidden = next !== 'batch';
+    if (next === 'single') $('singleKey').focus();
+  }
+  function updateCount() {
+    var n = parseKeys(true).length;
+    $('batchCount').textContent = n + ' / ' + MAX_BATCH;
+  }
+  function resultText() {
+    var lines = [];
+    if (mode === 'single' && lastResults.length === 1 && lastResults[0].ok) {
+      var d = lastResults[0].data;
+      lines.push('昵称：' + text(d.name));
+      lines.push('球球号：' + text(d.qqid));
+      lines.push('账号状态：' + stateOf(d).t);
+      lines.push('实名状态：' + realNameOf(d));
+      lines.push('黑名单：' + (Number(d.isBlack) === 1 ? '是' : '否'));
+      lines.push('充值限制：' + payOf(d));
+      return lines.join('\n');
+    }
+    lines.push('查询\t昵称\t球球号\t状态');
+    lastResults.forEach(function (r) {
+      if (r.ok) lines.push([r.key, text(r.data.name), text(r.data.qqid), stateOf(r.data).t].join('\t'));
+      else lines.push([r.key, '—', '—', r.status === 'notfound' ? '未找到' : '失败'].join('\t'));
+    });
+    return lines.join('\n');
+  }
+  function csvText() {
+    function c(v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }
+    var rows = [['查询', '昵称', '球球号', '账号状态', '实名状态', '黑名单', '充值限制']];
+    lastResults.forEach(function (r) {
+      if (r.ok) {
+        var d = r.data, st = stateOf(d);
+        rows.push([r.key, text(d.name), text(d.qqid), st.t, realNameOf(d), Number(d.isBlack) === 1 ? '是' : '否', payOf(d)]);
+      } else {
+        rows.push([r.key, '', '', r.status === 'notfound' ? '未找到' : '失败', '', '', '']);
+      }
+    });
+    return '\ufeff' + rows.map(function (row) { return row.map(c).join(','); }).join('\n');
+  }
+
+  /* ---------------- 事件 ---------------- */
+  Array.prototype.forEach.call(document.querySelectorAll('#modeSeg button'), function (b) {
+    b.addEventListener('click', function () { setMode(b.getAttribute('data-mode')); });
+  });
+  $('singleBtn').addEventListener('click', runSingle);
+  $('singleKey').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); runSingle(); }
+  });
+  $('batchBtn').addEventListener('click', runBatch);
+  $('batchInput').addEventListener('input', updateCount);
+  $('batchClear').addEventListener('click', function () {
+    $('batchInput').value = '';
+    updateCount();
+    IO.clearFx('清空成功', '输入已移除');
+  });
+  $('batchPaste').addEventListener('click', function () {
+    if (!navigator.clipboard || !navigator.clipboard.readText) { toast('当前环境不支持读取剪贴板，请长按输入框粘贴'); return; }
+    navigator.clipboard.readText().then(function (t) {
+      $('batchInput').value = t || '';
+      updateCount();
+      toast('已粘贴');
+    }).catch(function () { toast('无法读取剪贴板，请长按输入框粘贴'); });
+  });
+  $('copyResult').addEventListener('click', function () {
+    if (!lastResults.length) return toast('还没有结果');
+    var t = resultText();
+    if (window.UK && UK.copy) {
+      UK.copy(t).then(function (ok) { toast(ok ? '已复制结果' : '复制失败', ok ? 'ok' : 'err'); });
+    } else {
+      IO.copy(t).then(function (ok) { toast(ok ? '已复制结果' : '复制失败', ok ? 'ok' : 'err'); });
+    }
+  });
+  $('exportResult').addEventListener('click', function () {
+    if (!lastResults.length) return toast('还没有结果');
+    NB.exportDialog({ text: csvText(), name: '球球查询_' + NB.stamp(), ext: 'csv', mime: 'text/csv;charset=utf-8', meta: '查询结果' });
+  });
+  $('clearResult').addEventListener('click', function () {
+    lastResults = []; batchResults = [];
+    showEmpty('输入球球号或昵称<br>开始查询官方账号信息');
+    IO.clearFx('清空成功', '查询结果已移除');
+  });
+  $('proxyBase').addEventListener('change', function () {
+    var v = $('proxyBase').value.trim();
+    try { if (v) localStorage.setItem('bob_proxy', v); else localStorage.removeItem('bob_proxy'); } catch (e) { }
+    toast(v ? '中转地址已保存' : '已恢复直连');
+    testNet();
+  });
+
+  /* ---------------- 中转自检 ---------------- */
+  function setNet(state, msg) {
+    var box = $('netStatus');
+    if (!box) return;
+    box.className = 'bq-status ' + state;
+    $('netStatusText').textContent = msg;
+  }
+  var netTesting = false;
+  async function testNet() {
+    if (netTesting) return;
+    netTesting = true;
+    if (!proxyHost()) {
+      setNet('bad', '未填中转 · 浏览器直连会被官方跨域拦截');
+      netTesting = false;
+      return;
+    }
+    setNet('testing', '正在检测中转…');
+    var started = Date.now();
+    var timer = setTimeout(function () {
+      if (netTesting) { setNet('bad', '中转没有响应（10 秒无返回）· 检查地址'); netTesting = false; }
+    }, 10000);
+    try {
+      var json = await fetchJSON(viaProxy('', '1'), 9000);
+      clearTimeout(timer);
+      if (!netTesting) return;
+      var ms = Date.now() - started;
+      if (Number(json.code) === 0 || Number(json.code) === -1) {
+        setNet('ok', '中转正常 · ' + ms + ' ms');
+      } else {
+        setNet('bad', '中转已连上，但接口返回：' + (json.message || ('code ' + json.code)));
+      }
+    } catch (e) {
+      clearTimeout(timer);
+      if (!netTesting) return;
+      setNet('bad', '中转连不上（' + (e.message || e) + '）· 检查地址是否还有效');
+    }
+    netTesting = false;
+  }
+  $('netTest').addEventListener('click', function () { netTesting = false; testNet(); });
+
+  /* 初始化 */
+  try { $('proxyBase').value = proxyFull(); } catch (e) { $('proxyBase').value = DEFAULT_PROXY; }
+  updateCount();
+  if (window.UK) UK.applyTheme();
+  testNet();
+})();
+</script>
+<script src="v9-upgrade.js"></script>
+</body>
+</html>

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-accent="indigo" data-motion="on" data-fx="on">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f3f4f7">
+<title>格式转换 · Nebula</title>
+<link rel="stylesheet" href="ui-kit.css">
+<link rel="stylesheet" href="tool-page.css">
+<link rel="stylesheet" href="plugin-tools.css">
+<style>
+  .fmt-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:11px;}
+  .fmt-card{display:flex;align-items:center;gap:7px;padding:10px;border-radius:11px;border:1px solid var(--line);background:var(--bg-2);text-align:left;font-size:9.5px;font-weight:800;color:var(--muted);transition:.18s;}
+  .fmt-card .ic{width:15px;height:15px;color:var(--faint);}
+  .fmt-card small{display:block;font-size:8px;color:var(--faint);font-weight:650;margin-top:1px;}
+  .fmt-card.on{border-color:var(--accent-soft-2);background:var(--accent-soft);color:var(--accent);}
+  .fmt-card.on .ic{color:var(--accent);}
+</style>
+</head>
+<body>
+
+<main class="tool-shell">
+  <div id="head"></div>
+
+  <section class="panel">
+    <div class="panel-head"><svg class="ic"><use href="#i-upload"/></svg><b>1 · 粘贴表格数据</b><span class="panel-sub" id="srcState">本地处理</span></div>
+    <div class="pl-drop" id="drop">
+      <svg class="ic"><use href="#i-folder"/></svg>
+      <b>点击选择 CSV / TSV 文件，或拖进来</b>
+      <small>支持引号包裹、逗号 / 制表符 / 分号 / 竖线分隔</small>
+    </div>
+    <div class="pl-src" id="src" hidden><svg class="ic"><use href="#i-file"/></svg><span id="srcName"></span></div>
+    <textarea class="editor" id="input" spellcheck="false" placeholder="例如：&#10;球球号,昵称,密码&#10;123456789,小明,A1B2"></textarea>
+    <div class="nb-count-row"><div class="nb-bar" id="ibar"><i></i></div><span class="nb-count" id="icount">0 / 50,000 字</span></div>
+    <div class="editor-bar">
+      <button class="mini-btn" id="pick" type="button"><svg class="ic"><use href="#i-upload"/></svg>导入文件</button>
+      <button class="mini-btn" id="sample" type="button"><svg class="ic"><use href="#i-spark"/></svg>填入示例</button>
+      <span class="spacer"></span>
+      <button class="mini-btn ghost" id="clear" type="button"><svg class="ic"><use href="#i-trash"/></svg>清空</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><svg class="ic"><use href="#i-sliders"/></svg><b>2 · 解析与输出</b><span class="panel-sub" id="shape">0 行 × 0 列</span></div>
+    <div class="pl-fields" style="margin-top:0">
+      <div class="pl-field">
+        <label>分隔符</label>
+        <select id="delim">
+          <option value="auto">自动识别</option>
+          <option value="tab">制表符 Tab</option>
+          <option value="comma">逗号 ,</option>
+          <option value="semi">分号 ;</option>
+          <option value="pipe">竖线 |</option>
+          <option value="custom">自定义</option>
+        </select>
+      </div>
+      <div class="pl-field" id="customWrap" hidden>
+        <label>自定义分隔符</label>
+        <input type="text" id="customDelim" maxlength="3" placeholder="例如：----">
+      </div>
+      <div class="pl-field" id="colWrap" hidden>
+        <label>取第几列（列表类输出）</label>
+        <input type="number" id="colIndex" value="1" min="1" max="200" inputmode="numeric">
+      </div>
+      <div class="pl-field">
+        <label>首行是表头</label>
+        <label class="pl-opt" style="margin-top:0"><input type="checkbox" id="header" checked><span><b>首行当字段名</b><small>JSON 对象键 / 表头</small></span></label>
+      </div>
+    </div>
+
+    <div class="panel-sub" style="margin:13px 0 0;font-size:9px;color:var(--faint);font-weight:800;letter-spacing:.08em">输出格式</div>
+    <div class="fmt-grid" id="fmtGrid">
+      <button class="fmt-card on" type="button" data-fmt="jsonObj"><svg class="ic"><use href="#i-code"/></svg><span>JSON 对象数组<small>{ "key": "value" }</small></span></button>
+      <button class="fmt-card" type="button" data-fmt="jsonArr"><svg class="ic"><use href="#i-list"/></svg><span>JSON 二维数组<small>[[ "a", "b" ]]</small></span></button>
+      <button class="fmt-card" type="button" data-fmt="md"><svg class="ic"><use href="#i-list"/></svg><span>Markdown 表格<small>可直接粘贴文档</small></span></button>
+      <button class="fmt-card" type="button" data-fmt="sql"><svg class="ic"><use href="#i-db"/></svg><span>SQL IN 列表<small>'a', 'b', 'c'</small></span></button>
+      <button class="fmt-card" type="button" data-fmt="quote"><svg class="ic"><use href="#i-code"/></svg><span>逐行加引号<small>一行一个值</small></span></button>
+      <button class="fmt-card" type="button" data-fmt="html"><svg class="ic"><use href="#i-layers"/></svg><span>HTML 表格<small>&lt;table&gt;…&lt;/table&gt;</small></span></button>
+    </div>
+
+    <div class="pl-run">
+      <button class="btn btn-primary" id="run" type="button"><svg class="ic"><use href="#i-spark"/></svg>转换</button>
+      <button class="btn btn-ghost" id="reset" type="button"><svg class="ic"><use href="#i-refresh"/></svg>重置</button>
+    </div>
+    <div class="pl-stats">
+      <div><b id="stRows">0</b><span>数据行</span></div>
+      <div><b id="stCols">0</b><span>列数</span></div>
+      <div class="good"><b id="stOut">0</b><span>输出字符</span></div>
+      <div><b id="stFmt">—</b><span>格式</span></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="pl-out-head"><svg class="ic"><use href="#i-list"/></svg><b>转换结果</b><span class="kv" id="outMeta">等待转换</span></div>
+    <textarea class="editor" id="output" readonly placeholder="转换结果会显示在这里…"></textarea>
+    <div class="nb-count-row"><div class="nb-bar" id="obar"><i></i></div><span class="nb-count" id="ocount">0 / 50,000 字</span></div>
+    <div class="pl-actions">
+      <button class="btn btn-ghost" id="copy" type="button"><svg class="ic"><use href="#i-copy"/></svg>复制</button>
+      <button class="btn btn-primary" id="export" type="button"><svg class="ic"><use href="#i-download"/></svg>导出…</button>
+    </div>
+  </section>
+</main>
+
+<script src="lib-io.js"></script>
+<script src="ui-kit.js"></script>
+<script src="app-core.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  $('head').innerHTML = NB.toolHead({
+    icon: '<svg class="ic"><use href="#i-layers"/></svg>',
+    kicker: 'DATA CONVERTER',
+    title: '格式转换',
+    sub: 'CSV / TSV 与 JSON、Markdown、SQL IN、引号列表互转。解析在本地完成，文件名和扩展名可按需要改。',
+    tags: ['CSV', 'JSON', 'Markdown']
+  }) + NB.sprite();
+  NB.bindTheme();
+  NB.counter($('input'), $('icount'));
+  NB.counter($('output'), $('ocount'));
+
+  var imported = '', fmt = 'jsonObj', parsed = null;
+  var EXT = { jsonObj: 'json', jsonArr: 'json', md: 'md', sql: 'sql', quote: 'txt', html: 'html' };
+  var LABEL = { jsonObj: 'JSON 对象数组', jsonArr: 'JSON 二维数组', md: 'Markdown 表格', sql: 'SQL IN', quote: '逐行引号', html: 'HTML 表格' };
+
+  function markSource(name, size) {
+    imported = name || '';
+    $('src').hidden = !name;
+    if (name) {
+      $('srcName').textContent = '已导入 ' + name + (size ? ' · ' + size : '') + '（可覆盖原文件）';
+      $('srcState').textContent = '已导入';
+    } else {
+      $('srcState').textContent = '本地处理';
+    }
+  }
+  function defaultName() {
+    var last = NB.lastImport();
+    if (imported) return NB.stripExt(imported);
+    if (last && last.name) return NB.stripExt(last.name);
+    return '格式转换结果';
+  }
+
+  function pick() {
+    NB.upload({
+      accept: '.txt,.csv,.tsv,.log,text/plain,text/csv',
+      onText: function (text, f) {
+        $('input').value = NB.guard(text).text;
+        $('input').dispatchEvent(new Event('input', { bubbles: true }));
+        markSource(f.name, IO.fmtBytes(f.size));
+        run();
+      }
+    });
+  }
+  $('pick').addEventListener('click', pick);
+  $('drop').addEventListener('click', pick);
+  ['dragover', 'dragenter'].forEach(function (e) { $('drop').addEventListener(e, function (ev) { ev.preventDefault(); $('drop').classList.add('drag'); }); });
+  ['dragleave', 'drop'].forEach(function (e) { $('drop').addEventListener(e, function (ev) { ev.preventDefault(); $('drop').classList.remove('drag'); }); });
+  $('drop').addEventListener('drop', function (ev) {
+    var f = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0];
+    if (!f) return;
+    NB.importFile(f, {
+      onText: function (text, file) {
+        $('input').value = NB.guard(text).text;
+        $('input').dispatchEvent(new Event('input', { bubbles: true }));
+        markSource(file.name, IO.fmtBytes(file.size));
+        run();
+      }
+    });
+  });
+
+  $('sample').addEventListener('click', function () {
+    $('input').value = '球球号,昵称,密码\n15800000001,小明,A1B2\n15800000002,阿强,C3D4\n15800000003,静静,E5F6';
+    $('input').dispatchEvent(new Event('input', { bubbles: true }));
+    run();
+  });
+  $('clear').addEventListener('click', function () {
+    $('input').value = '';
+    $('input').dispatchEvent(new Event('input', { bubbles: true }));
+    $('output').value = '';
+    $('output').dispatchEvent(new Event('input', { bubbles: true }));
+    markSource('');
+    parsed = null;
+    $('stRows').textContent = $('stCols').textContent = $('stOut').textContent = '0';
+    $('shape').textContent = '0 行 × 0 列';
+    $('outMeta').textContent = '等待转换';
+    IO.clearFx('清空成功', '输入与结果已移除');
+  });
+
+  var FORMATS = ['jsonObj', 'jsonArr', 'md', 'sql', 'quote', 'html'];
+  document.querySelectorAll('#fmtGrid .fmt-card').forEach(function (b) {
+    b.addEventListener('click', function () {
+      fmt = b.getAttribute('data-fmt');
+      document.querySelectorAll('#fmtGrid .fmt-card').forEach(function (x) { x.classList.toggle('on', x === b); });
+      $('colWrap').hidden = (fmt !== 'sql' && fmt !== 'quote');
+      $('stFmt').textContent = fmt.toUpperCase();
+      run();
+      NB.haptic(5);
+    });
+  });
+  $('delim').addEventListener('change', function () {
+    $('customWrap').hidden = $('delim').value !== 'custom';
+    run();
+  });
+  $('customDelim').addEventListener('input', NB.debounce(run, 250));
+  $('header').addEventListener('change', run);
+  $('colIndex').addEventListener('input', NB.debounce(run, 200));
+
+  function detectDelim(text) {
+    var line = text.split('\n')[0] || '';
+    var cands = [['\t', 'tab'], [',', 'comma'], [';', 'semi'], ['|', 'pipe']];
+    var best = ',';
+    var bestN = 0;
+    cands.forEach(function (c) {
+      var n = line.split(c[0]).length - 1;
+      if (n > bestN) { bestN = n; best = c[0]; }
+    });
+    return best;
+  }
+  function delimValue() {
+    var v = $('delim').value;
+    if (v === 'auto') return detectDelim($('input').value);
+    if (v === 'tab') return '\t';
+    if (v === 'comma') return ',';
+    if (v === 'semi') return ';';
+    if (v === 'pipe') return '|';
+    return $('customDelim').value || ',';
+  }
+
+  function parse(text, delim) {
+    var rows = [], row = [], field = '', inQ = false;
+    text = text.replace(/\r\n?/g, '\n');
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (inQ) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { field += '"'; i++; }
+          else inQ = false;
+        } else field += c;
+      } else if (c === '"') {
+        inQ = true;
+      } else if (c === delim) {
+        row.push(field); field = '';
+      } else if (c === '\n') {
+        row.push(field); rows.push(row); row = []; field = '';
+      } else {
+        field += c;
+      }
+    }
+    if (field !== '' || row.length) { row.push(field); rows.push(row); }
+    while (rows.length && rows[rows.length - 1].every(function (x) { return String(x).trim() === ''; })) rows.pop();
+    return rows;
+  }
+
+  function run() {
+    var text = $('input').value;
+    if (!text.trim()) { NB.toast('先粘贴或导入表格数据'); return; }
+    var delim = delimValue();
+    var rows = parse(text, delim);
+    if (!rows.length) { NB.toast('没有解析到数据行'); return; }
+    var hasHeader = $('header').checked;
+    var headers = hasHeader ? rows.shift().map(function (h, i) { return String(h).trim() || ('列' + (i + 1)); }) : null;
+    var width = 0;
+    rows.forEach(function (r) { width = Math.max(width, r.length); });
+    if (headers) width = Math.max(width, headers.length);
+    if (!headers) headers = [];
+    for (var i = 0; i < width; i++) if (!headers[i]) headers[i] = '列' + (i + 1);
+    // 字段名去重
+    var used = Object.create(null);
+    headers = headers.map(function (h) {
+      var base = h, n = 2;
+      while (used[h]) { h = base + '_' + n++; }
+      used[h] = 1;
+      return h;
+    });
+    rows = rows.map(function (r, ri) {
+      var o = [];
+      for (var j = 0; j < width; j++) o.push(r[j] == null ? '' : String(r[j]));
+      return o;
+    });
+
+    var outText = '';
+    if (fmt === 'jsonObj') {
+      outText = JSON.stringify(rows.map(function (r) {
+        var o = {};
+        headers.forEach(function (h, j) { o[h] = r[j]; });
+        return o;
+      }), null, 2);
+    } else if (fmt === 'jsonArr') {
+      var arr = hasHeader ? [headers].concat(rows) : rows;
+      outText = JSON.stringify(arr, null, 2);
+    } else if (fmt === 'md') {
+      function esc(s) { return String(s).replace(/\|/g, '\\|').replace(/\n/g, ' '); }
+      outText = '| ' + headers.map(esc).join(' | ') + ' |\n| ' + headers.map(function () { return '---'; }).join(' | ') + ' |\n' +
+        rows.map(function (r) { return '| ' + r.map(esc).join(' | ') + ' |'; }).join('\n');
+    } else if (fmt === 'sql' || fmt === 'quote') {
+      var col = Math.max(1, parseInt($('colIndex').value, 10) || 1) - 1;
+      var vals = rows.map(function (r) { return r[col] == null ? '' : r[col]; });
+      if (fmt === 'sql') outText = '(' + vals.map(function (v) { return "'" + v.replace(/'/g, "''") + "'"; }).join(', ') + ')';
+      else outText = vals.join('\n');
+    } else if (fmt === 'html') {
+      function esc2(s) { return String(s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
+      outText = '<table>\n  <thead><tr>' + headers.map(function (h) { return '<th>' + esc2(h) + '</th>'; }).join('') + '</tr></thead>\n  <tbody>\n' +
+        rows.map(function (r) { return '    <tr>' + r.map(function (v) { return '<td>' + esc2(v) + '</td>'; }).join('') + '</tr>'; }).join('\n') +
+        '\n  </tbody>\n</table>';
+    }
+    parsed = { rows: rows.length, cols: width, headers: headers };
+    $('output').value = NB.guard(outText).text;
+    $('output').dispatchEvent(new Event('input', { bubbles: true }));
+    $('stRows').textContent = NB.fmtNum(rows.length);
+    $('stCols').textContent = NB.fmtNum(width);
+    $('stOut').textContent = NB.fmtNum(outText.length);
+    $('stFmt').textContent = LABEL[fmt].replace(' 对象数组', '').replace(' 二维数组', '').replace(' 表格', '').replace(' IN', '');
+    $('shape').textContent = NB.fmtNum(rows.length) + ' 行 × ' + NB.fmtNum(width) + ' 列';
+    $('outMeta').textContent = LABEL[fmt] + ' · ' + NB.fmtNum(outText.length) + ' 字符';
+    NB.haptic(6);
+  }
+  $('run').addEventListener('click', run);
+  $('reset').addEventListener('click', function () {
+    $('delim').value = 'auto'; $('customWrap').hidden = true;
+    $('header').checked = true;
+    $('colIndex').value = 1;
+    fmt = 'jsonObj';
+    document.querySelectorAll('#fmtGrid .fmt-card').forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-fmt') === fmt); });
+    $('colWrap').hidden = true;
+    run();
+  });
+
+  $('copy').addEventListener('click', function () {
+    var t = $('output').value;
+    if (!t) { NB.toast('还没有结果'); return; }
+    IO.copy(t).then(function (ok) { NB.toast(ok ? '已复制' : '复制失败'); });
+  });
+  $('export').addEventListener('click', function () {
+    var t = $('output').value;
+    if (!t) { NB.toast('还没有结果'); return; }
+    NB.exportDialog({
+      text: t,
+      name: defaultName(),
+      ext: EXT[fmt],
+      mime: fmt === 'jsonObj' || fmt === 'jsonArr' ? 'application/json;charset=utf-8' : fmt === 'html' ? 'text/html;charset=utf-8' : fmt === 'md' ? 'text/markdown;charset=utf-8' : 'text/plain;charset=utf-8',
+      meta: parsed ? (LABEL[fmt] + ' · ' + parsed.rows + ' 行 × ' + parsed.cols + ' 列') : ''
+    });
+  });
+
+  $('input').addEventListener('input', NB.debounce(function () {
+    if ($('input').value.trim()) run();
+  }, 600));
+  $('stFmt').textContent = 'JSON';
+})();
+</script>
+</body>
+</html>

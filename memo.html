@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-accent="indigo">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#eef2f7">
+<title>速记便签</title>
+<style>
+  :root{
+    --bg:#eef2f7;--ink:#0f172a;--muted:#64748b;--faint:#94a3b8;
+    --panel:rgba(255,255,255,.76);--panel2:rgba(255,255,255,.5);--solid:#fff;
+    --line:rgba(255,255,255,.9);--hair:rgba(15,23,42,.07);
+    --shadow:0 16px 36px -14px rgba(31,38,135,.3);--shadow-sm:0 6px 16px -8px rgba(31,38,135,.24);
+    --accent:#6366f1;--accent2:#8b5cf6;--soft:rgba(99,102,241,.13);
+    --bad:#ef4444;
+    --ease:cubic-bezier(.2,.8,.2,1);
+  }
+  html[data-theme="dark"]{
+    --bg:#080b14;--ink:#e8ebf5;--muted:#93a0b8;--faint:#6b7891;
+    --panel:rgba(24,30,47,.82);--panel2:rgba(18,24,39,.62);--solid:#141a2b;
+    --line:rgba(255,255,255,.07);--hair:rgba(255,255,255,.07);
+    --shadow:0 18px 40px -16px rgba(0,0,0,.78);--shadow-sm:0 8px 18px -10px rgba(0,0,0,.6);
+    --soft:rgba(99,102,241,.2);
+  }
+  html[data-accent="mint"]{--accent:#10b981;--accent2:#06b6d4;--soft:rgba(16,185,129,.14);}
+  html[data-accent="sunset"]{--accent:#f97316;--accent2:#ef4444;--soft:rgba(249,115,22,.14);}
+  html[data-accent="sakura"]{--accent:#ec4899;--accent2:#a855f7;--soft:rgba(236,72,153,.14);}
+  html[data-accent="graphite"]{--accent:#64748b;--accent2:#334155;--soft:rgba(100,116,139,.16);}
+  html[data-theme="dark"][data-accent="mint"]{--soft:rgba(16,185,129,.22);}
+  html[data-theme="dark"][data-accent="sunset"]{--soft:rgba(249,115,22,.22);}
+  html[data-theme="dark"][data-accent="sakura"]{--soft:rgba(236,72,153,.22);}
+  html[data-theme="dark"][data-accent="graphite"]{--soft:rgba(148,163,184,.2);}
+
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;min-height:100vh;color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background-color:var(--bg);
+    background-image:radial-gradient(circle at 50% -10%,rgba(129,140,248,.22),transparent 58%),url('bg.jpg');
+    background-size:cover;background-position:center;background-attachment:fixed;
+    padding:calc(16px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));}
+  html[data-theme="dark"] body{background-image:radial-gradient(circle at 50% -10%,rgba(99,102,241,.25),transparent 58%),linear-gradient(rgba(6,9,18,.86),rgba(6,9,18,.94)),url('bg.jpg');}
+  h1{font-size:19px;margin:0 0 3px;font-weight:800;}
+  .sub{font-size:11.5px;color:var(--muted);font-weight:600;margin-bottom:14px;}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:14px;margin-bottom:12px;
+    box-shadow:var(--shadow);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);}
+  .card-title{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:800;margin-bottom:10px;}
+  .card-title em{font-style:normal;font-size:10.5px;font-weight:700;color:var(--muted);}
+  textarea{width:100%;min-height:74px;border:1px solid var(--hair);background:var(--panel2);border-radius:14px;
+    padding:12px;font-family:inherit;font-size:13px;line-height:1.6;color:var(--ink);outline:none;resize:vertical;}
+  textarea:focus{border-color:var(--accent);background:var(--solid);}
+  .btns{display:flex;gap:8px;margin-top:9px;}
+  button{font-family:inherit;font-size:12px;font-weight:800;padding:10px 13px;border-radius:11px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--ink);cursor:pointer;transition:.18s var(--ease);flex:1;}
+  button:active{transform:scale(.96);}
+  button.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-color:transparent;
+    box-shadow:0 6px 16px -8px var(--accent);}
+  button.ghost{color:var(--muted);}
+  .meta{display:flex;justify-content:space-between;font-size:10.5px;font-weight:700;color:var(--faint);margin-top:6px;}
+
+  .note{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px 13px;
+    margin-bottom:9px;box-shadow:var(--shadow-sm);animation:rise .3s var(--ease) both;}
+  @keyframes rise{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+  .note.pin{border-color:rgba(99,102,241,.35);}
+  .note-top{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:800;color:var(--faint);margin-bottom:6px;}
+  .note.pin .note-top{color:var(--accent);}
+  .note-text{font-size:13px;line-height:1.65;font-weight:600;white-space:pre-wrap;word-break:break-word;}
+  .note-ops{display:flex;gap:7px;margin-top:9px;}
+  .note-ops button{flex:none;font-size:10.5px;padding:5px 10px;border-radius:8px;background:var(--panel2);}
+  .note-ops button.del{color:var(--bad);border-color:rgba(239,68,68,.25);}
+  .empty{text-align:center;padding:36px 12px;color:var(--muted);font-size:12px;font-weight:600;line-height:1.8;}
+  .hint{font-size:10.5px;line-height:1.6;color:var(--muted);font-weight:600;margin-top:9px;}
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+</style>
+<link rel="stylesheet" href="tool-skin.css">
+</head>
+<body class="legacy-tool">
+
+<h1>速记便签</h1>
+<div class="sub">随手记一条，24 小时后自动清理；也可随时手动清空。</div>
+
+<div class="card">
+  <div class="card-title"><span>新便签</span><em id="composerLen">0 字</em></div>
+  <textarea id="composer" placeholder="记点什么：临时号码、思路、待办…"></textarea>
+  <div class="btns">
+    <button class="primary" id="addBtn">保存便签</button>
+    <button class="ghost" id="clearBtn">清空全部</button>
+  </div>
+  <div class="hint">便签只存在本机 localStorage，不上传；24 小时后过期（按每条最后修改时间算）。</div>
+</div>
+
+<div class="card">
+  <div class="card-title"><span>便签列表</span><em id="countInfo">0 条</em></div>
+  <div id="list"></div>
+  <div class="empty" id="empty">还没有便签<br>在上面写一条试试</div>
+  <div class="btns">
+    <button id="exportBtn">导出 TXT</button>
+    <button id="refreshBtn">刷新</button>
+  </div>
+</div>
+
+<script src="lib-io.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var KEY = 'plug_memo_notes';
+  var TTL = 864e5;
+  var notes = [];
+
+  function save() { IO.set(KEY, notes); }
+  function load() {
+    notes = IO.get(KEY, []);
+    if (!Array.isArray(notes)) notes = [];
+    var cutoff = Date.now() - TTL;
+    var before = notes.length;
+    notes = notes.filter(function (n) { return n && n.text && (n.ts || 0) >= cutoff; });
+    if (notes.length !== before) save();
+    render();
+  }
+
+  function fmtTime(ts) {
+    try {
+      var d = new Date(ts);
+      var p = function (n) { return (n < 10 ? '0' : '') + n; };
+      return p(d.getMonth() + 1) + '/' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+    } catch (e) { return '—'; }
+  }
+
+  function render() {
+    var box = $('list');
+    var sorted = notes.slice().sort(function (a, b) {
+      if (!!b.pin !== !!a.pin) return b.pin ? 1 : -1;
+      return (b.ts || 0) - (a.ts || 0);
+    });
+    $('countInfo').textContent = notes.length + ' 条';
+    $('empty').style.display = sorted.length ? 'none' : 'block';
+
+    box.innerHTML = sorted.map(function (n) {
+      var leftMin = Math.max(0, Math.round((n.ts + TTL - Date.now()) / 60000));
+      return '<div class="note' + (n.pin ? ' pin' : '') + '" data-id="' + n.id + '">' +
+        '<div class="note-top"><span>' + (n.pin ? '📌 置顶' : '便签') + '</span>' +
+        '<span style="margin-left:auto">' + fmtTime(n.ts) + ' · 还剩 ' + leftMin + ' 分钟</span></div>' +
+        '<div class="note-text">' + IO.escape(n.text) + '</div>' +
+        '<div class="note-ops">' +
+        '<button data-op="pin">' + (n.pin ? '取消置顶' : '置顶') + '</button>' +
+        '<button data-op="copy">复制</button>' +
+        '<button class="del" data-op="del">删除</button>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  $('composer').addEventListener('input', function () {
+    $('composerLen').textContent = this.value.length + ' 字';
+  });
+
+  function addNote() {
+    var text = $('composer').value.trim();
+    if (!text) return IO.toast('还没有内容', 'err');
+    notes.unshift({ id: IO.uid(), text: text, ts: Date.now(), pin: false });
+    save();
+    $('composer').value = '';
+    $('composerLen').textContent = '0 字';
+    render();
+    IO.toast('已保存', 'ok');
+  }
+  $('addBtn').addEventListener('click', addNote);
+  $('clearBtn').addEventListener('click', function () {
+    if (!notes.length) return IO.toast('没有便签可清空', 'err');
+    IO.confirm({
+      title: '清空全部便签？',
+      text: '所有便签会从本机删除，无法恢复。',
+      okText: '清空',
+      danger: true,
+      onOk: function () {
+        notes = []; save(); render();
+        IO.clearFx('清空成功', '便签已移除');
+      }
+    });
+  });
+
+  $('list').addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('button[data-op]') : null;
+    if (!btn) return;
+    var wrap = btn.closest('.note');
+    var id = wrap && wrap.getAttribute('data-id');
+    var note = notes.filter(function (n) { return n.id === id; })[0];
+    if (!note) return;
+    var op = btn.getAttribute('data-op');
+    if (op === 'pin') { note.pin = !note.pin; save(); render(); }
+    else if (op === 'del') {
+      notes = notes.filter(function (n) { return n !== note; });
+      save(); render(); IO.toast('已删除', 'ok');
+    } else if (op === 'copy') {
+      IO.copy(note.text).then(function (ok) { IO.toast(ok ? '已复制' : '复制失败', ok ? 'ok' : 'err'); });
+    }
+  });
+
+  $('exportBtn').addEventListener('click', function () {
+    if (!notes.length) return IO.toast('没有便签可导出', 'err');
+    var txt = notes.map(function (n) { return '[' + fmtTime(n.ts) + '] ' + n.text; }).join('\n\n');
+    IO.exportText(txt, IO.makeName('便签', 'txt'), 'text/plain', IO.toast);
+  });
+  $('refreshBtn').addEventListener('click', function () { load(); IO.toast('已刷新', 'ok'); });
+
+  window.addEventListener('pagehide', function () {
+    try {
+      if (localStorage.getItem('plug_policy') === 'exit') {
+        IO.clearPrefix('plug_memo_');
+      }
+    } catch (e) { }
+  });
+
+  load();
+})();
+</script>
+<script src="tool-skin.js"></script>
+<script src="v9-upgrade.js"></script>
+</body>
+</html>

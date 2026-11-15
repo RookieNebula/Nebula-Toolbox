@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-accent="indigo" data-motion="on" data-fx="on">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f3f4f7">
+<title>智能文档分类打包 · Nebula</title>
+<link rel="stylesheet" href="ui-kit.css">
+<link rel="stylesheet" href="tool-page.css">
+<style>
+  .ac-drop{border:2px dashed var(--line-strong);border-radius:16px;padding:22px 14px;text-align:center;background:var(--bg-2);cursor:pointer;transition:.2s}
+  .ac-drop:active,.ac-drop.drag{border-color:var(--accent);background:var(--accent-soft)}
+  .ac-drop .ic{width:28px;height:28px;margin:0 auto 8px;color:var(--accent);opacity:.8}
+  .ac-drop b{display:block;font-size:11.5px;font-weight:850}
+  .ac-drop small{display:block;margin-top:3px;font-size:9px;color:var(--faint)}
+  .ac-file{margin-top:9px;font-size:9.5px;color:var(--muted);font-weight:700;word-break:break-all}
+  .ac-preview{max-height:280px;overflow:auto;border:1px solid var(--line);border-radius:13px;background:var(--bg-2);margin-top:10px}
+  .ac-line{display:grid;grid-template-columns:38px 1fr;gap:6px;padding:6px 10px;border-bottom:1px solid var(--line);font-family:ui-monospace,monospace;font-size:9.5px;line-height:1.5;min-height:28px;align-items:center}
+  .ac-line:last-child{border-bottom:0}
+  .ac-line i{font-style:normal;color:var(--faint);font-size:8px;text-align:right}
+  .ac-line span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
+  .ac-line.dup span{color:var(--bad);text-decoration:line-through;opacity:.7}
+  .ac-files{display:grid;gap:6px;margin-top:10px}
+  .ac-frow{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:10px;background:var(--bg-2);border:1px solid var(--line);font-size:10px;font-weight:750}
+  .ac-frow .ic{width:13px;height:13px;color:var(--accent);flex:none}
+  .ac-frow span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ac-frow em{margin-left:auto;font-style:normal;font-size:8.5px;color:var(--faint);white-space:nowrap}
+  .ac-prog{height:5px;border-radius:3px;background:var(--bg-2);overflow:hidden;margin-top:10px;display:none}
+  .ac-prog.show{display:block}
+  .ac-prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s linear}
+  .ac-search{width:100%;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--bg-2);padding:0 10px;font-size:11px;outline:none;margin-top:10px}
+  .ac-search:focus{border-color:var(--accent)}
+  .ac-export{margin-top:14px;padding-top:13px;border-top:1px solid var(--line);}
+  .ac-export-title{display:flex;align-items:center;gap:7px;margin-bottom:9px;font-size:10px;font-weight:850;color:var(--muted);}
+  .ac-export-title .ic{width:14px;height:14px;color:var(--accent);}
+  .ac-dir{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:9px;padding:9px 10px;border-radius:11px;background:var(--bg-2);border:1px solid var(--line);}
+  .ac-dir .ic{width:14px;height:14px;color:var(--accent);flex:none;}
+  .ac-dir span{flex:1;min-width:0;font-size:9.5px;font-weight:750;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ac-dir .mini-btn{height:28px;font-size:8.5px;padding:0 8px;}
+  .ac-preview-name{margin-top:9px;font-size:9px;line-height:1.55;color:var(--faint);font-weight:650;word-break:break-all;}
+  .ac-preview-name b{color:var(--ink-2);font-family:ui-monospace,monospace;font-weight:750;}
+  .ac-preview-name .ac-more{color:var(--accent);font-weight:800;}
+  .ac-fold-note{font-size:8.5px;color:var(--faint);line-height:1.5;margin-top:6px;}
+  #outSeg button:disabled{opacity:.42;pointer-events:none;}
+
+</style>
+</head>
+<body>
+
+<main class="tool-shell">
+  <div id="head"></div>
+
+  <!-- 1. 导入 -->
+  <section class="panel">
+    <div class="panel-head">
+      <svg class="ic"><use href="#i-folder"/></svg><b>1 · 选择文档</b>
+      <span class="panel-sub" id="fileCount">未选择</span>
+    </div>
+    <div class="ac-drop" id="drop">
+      <svg class="ic"><use href="#i-file"/></svg>
+      <b>点击选择文件</b>
+      <small>或拖拽到这里 · txt / csv / log · 自动去空行 · ≤5 万行</small>
+    </div>
+    <div class="ac-file" id="fileInfo">尚未选择文件</div>
+    <div class="stat-grid" id="stats">
+      <div><b id="stTotal">0</b><span>原始行</span></div>
+      <div><b id="stUnique">0</b><span>去重后</span></div>
+      <div><b id="stDup">0</b><span>重复</span></div>
+      <div><b id="stChars">0</b><span>字符数</span></div>
+    </div>
+  </section>
+
+  <!-- 2. 预览 -->
+  <section class="panel" id="previewPanel" hidden>
+    <div class="panel-head">
+      <svg class="ic"><use href="#i-search"/></svg><b>2 · 预览与校对</b>
+      <span class="panel-sub" id="pvHint">前 200 行</span>
+    </div>
+    <input class="ac-search" id="search" type="search" placeholder="搜索行内容…" autocomplete="off">
+    <div class="ac-preview" id="preview"></div>
+    <div class="note-line" id="dupHint" hidden><svg class="ic"><use href="#i-info"/></svg><span>红色删除线为重复行，按设置会被去掉。</span></div>
+  </section>
+
+  <!-- 3. 规则 -->
+  <section class="panel">
+    <div class="panel-head"><svg class="ic"><use href="#i-sliders"/></svg><b>3 · 分组规则</b></div>
+    <div class="seg" id="groupSeg">
+      <button type="button" data-g="size" class="on">每份行数</button>
+      <button type="button" data-g="col">按列值</button>
+      <button type="button" data-g="kw">按关键字</button>
+      <button type="button" data-g="even">均分 N 份</button>
+    </div>
+
+    <div class="field-grid" style="margin-top:10px">
+      <div class="field" id="f-size">
+        <label><svg class="ic"><use href="#i-list"/></svg>每份行数</label>
+        <input type="number" id="chunkSize" value="100" min="1" max="50000" inputmode="numeric">
+      </div>
+      <div class="field" id="f-col" hidden>
+        <label><svg class="ic"><use href="#i-list"/></svg>按第几列</label>
+        <input type="number" id="colIndex" value="3" min="1" inputmode="numeric">
+      </div>
+      <div class="field" id="f-sep" hidden>
+        <label><svg class="ic"><use href="#i-code"/></svg>分隔符</label>
+        <input type="text" id="colSep" value="----" maxlength="10">
+      </div>
+      <div class="field" id="f-kw" hidden>
+        <label><svg class="ic"><use href="#i-filter"/></svg>关键字（多值用 |）</label>
+        <input type="text" id="kwList" placeholder="如：未查|已查">
+      </div>
+      <div class="field" id="f-even" hidden>
+        <label><svg class="ic"><use href="#i-box"/></svg>分成几份</label>
+        <input type="number" id="evenN" value="10" min="1" max="200" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label><svg class="ic"><use href="#i-file"/></svg>基础文件名</label>
+        <input type="text" id="baseName" value="质量未查" maxlength="40">
+      </div>
+      <div class="field">
+        <label><svg class="ic"><use href="#i-file"/></svg>扩展名</label>
+        <select id="extSel">
+          <option value="txt" selected>.txt</option>
+          <option value="csv">.csv</option>
+        </select>
+      </div>
+      <div class="field">
+        <label><svg class="ic"><use href="#i-code"/></svg>编号位数</label>
+        <select id="padSel">
+          <option value="auto" selected>自动</option>
+          <option value="2">2 位</option>
+          <option value="3">3 位</option>
+          <option value="4">4 位</option>
+        </select>
+      </div>
+      <div class="field">
+        <label><svg class="ic"><use href="#i-shield"/></svg>ZIP 文件名</label>
+        <input type="text" id="zipName" value="打包合集" maxlength="40">
+      </div>
+    </div>
+
+    <div class="switch-row" style="margin-top:10px">
+      <span class="sr-copy"><b>自动去重</b><span>完全相同的行只保留一次</span></span>
+      <button class="switch" id="dedupeSw" type="button" role="switch" aria-checked="true" aria-label="自动去重"></button>
+    </div>
+
+    <div class="ac-files" id="plan"></div>
+
+    <div class="ac-export">
+      <div class="ac-export-title"><svg class="ic"><use href="#i-download"/></svg>导出方式</div>
+      <div class="seg" id="outSeg">
+        <button type="button" data-o="zip" class="on">打包成 ZIP</button>
+        <button type="button" data-o="dir" id="dirSegBtn">导出到文件夹</button>
+      </div>
+      <div class="ac-dir" id="dirRow" hidden>
+        <svg class="ic"><use href="#i-folder"/></svg>
+        <span id="dirName">未选择文件夹</span>
+        <button class="mini-btn accent" id="pickDir" type="button">选择…</button>
+        <button class="mini-btn" id="lastDir" type="button">上次位置</button>
+      </div>
+      <div class="ac-fold-note" id="dirUnsupported" hidden>当前浏览器不支持直接写入文件夹。可以继续打包 ZIP，导出时用系统保存面板选择位置。</div>
+      <div class="ac-preview-name" id="namePreview">文件名预览会显示在这里</div>
+    </div>
+
+    <div class="action-bar">
+      <button class="btn btn-primary" id="buildBtn" type="button" disabled><svg class="ic"><use href="#i-download"/></svg><span id="buildLabel">打包并导出</span></button>
+    </div>
+    <div class="ac-prog" id="prog"><i></i></div>
+    <div class="note-line" style="margin-top:10px"><svg class="ic"><use href="#i-shield"/></svg><span>ZIP 在浏览器内生成，零依赖、不联网；中文文件名按 UTF-8 写入。</span></div>
+  </section>
+</main>
+
+<script src="lib-io.js"></script>
+<script src="ui-kit.js"></script>
+<script src="app-core.js"></script>
+<script src="lib-zip.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var state = { raw: [], unique: [], plan: [], busy: false };
+
+  $('head').innerHTML = NB.toolHead({
+    icon: '<svg class="ic"><use href="#i-box"/></svg>',
+    kicker: 'DOC SPLITTER',
+    title: '智能文档分类打包',
+    sub: '导入文档、自动去重、按行数 / 列值 / 关键字分件，打包成 ZIP 一次导出。',
+    tags: ['本地 ZIP', '去重', '5 万行']
+  }) + NB.sprite();
+  NB.bindTheme();
+
+  /* ---------- 导入 ---------- */
+  function ingest(text, label) {
+    var all = String(text).replace(/\r\n?/g, '\n').split('\n');
+    var lines = [];
+    all.forEach(function (l) {
+      var s = l.replace(/\s+$/, '');
+      if (s.trim() !== '') lines.push(s);
+    });
+    if (lines.length > NB.MAX_ROWS) {
+      NB.toast('超过 5 万行，已截取前 5 万行');
+      lines = lines.slice(0, NB.MAX_ROWS);
+    }
+    state.raw = lines;
+    state.unique = dedupeOn() ? Array.from(new Set(lines)) : lines.slice();
+    $('stTotal').textContent = NB.fmtNum(lines.length);
+    $('stUnique').textContent = NB.fmtNum(state.unique.length);
+    $('stDup').textContent = NB.fmtNum(lines.length - state.unique.length);
+    $('stChars').textContent = NB.fmtNum(text.length);
+    $('fileInfo').textContent = label || ('已载入 ' + NB.fmtNum(lines.length) + ' 行');
+    $('fileCount').textContent = NB.fmtNum(lines.length) + ' 行';
+    $('previewPanel').hidden = false;
+    $('dupHint').hidden = (lines.length === state.unique.length);
+    $('buildBtn').disabled = false;
+    renderPreview();
+    computePlan();
+    NB.haptic(8);
+  }
+
+  function dedupeOn() { return $('dedupeSw').getAttribute('aria-checked') === 'true'; }
+
+  $('drop').addEventListener('click', function () {
+    NB.upload({
+      accept: '.txt,.csv,.log,.tsv,text/plain,text/csv',
+      onText: function (text, f) { ingest(text, '已导入 ' + f.name + ' · ' + NB.fmtNum(text.length) + ' 字符'); }
+    });
+  });
+  var dz = $('drop');
+  ['dragover', 'dragenter'].forEach(function (e) { dz.addEventListener(e, function (ev) { ev.preventDefault(); dz.classList.add('drag'); }); });
+  ['dragleave', 'drop'].forEach(function (e) { dz.addEventListener(e, function (ev) { ev.preventDefault(); dz.classList.remove('drag'); }); });
+  dz.addEventListener('drop', function (e) {
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!f) return;
+    NB.importFile(f, { onText: function (t, file) { ingest(t, '已导入 ' + file.name + ' · ' + NB.fmtNum(t.length) + ' 字符'); } });
+  });
+
+  /* ---------- 预览 ---------- */
+  function renderPreview() {
+    var q = $('search').value.trim().toLowerCase();
+    var pool = state.raw;
+    var dupSet = {};
+    if (dedupeOn()) {
+      var seen = {};
+      pool.forEach(function (l) { if (seen[l]) dupSet[l] = 1; else seen[l] = 1; });
+    }
+    var rows = [], n = 0;
+    for (var i = 0; i < pool.length && rows.length < 200; i++) {
+      if (q && pool[i].toLowerCase().indexOf(q) < 0) continue;
+      rows.push({ i: i + 1, t: pool[i], dup: !!dupSet[pool[i]] });
+    }
+    $('pvHint').textContent = '显示 ' + (q ? '匹配' : '前') + ' ' + rows.length + ' 行';
+    $('preview').innerHTML = rows.map(function (r) {
+      return '<div class="ac-line' + (r.dup ? ' dup' : '') + '"><i>' + r.i + '</i><span title="' + NB.esc(r.t) + '">' + NB.esc(r.t) + '</span></div>';
+    }).join('') || '<div class="preview-empty">没有匹配的行</div>';
+  }
+  $('search').addEventListener('input', NB.debounce(renderPreview, 120));
+
+  /* ---------- 分组 ---------- */
+  var groupMode = 'size';
+  document.querySelectorAll('#groupSeg button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      groupMode = b.getAttribute('data-g');
+      document.querySelectorAll('#groupSeg button').forEach(function (x) { x.classList.toggle('on', x === b); });
+      [['f-size', 'size'], ['f-col', 'col'], ['f-sep', 'col'], ['f-kw', 'kw'], ['f-even', 'even']].forEach(function (p) {
+        $(p[0]).hidden = p[1] !== groupMode;
+      });
+      computePlan();
+    });
+  });
+
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+  function computePlan() {
+    if (!state.unique.length) { $('plan').innerHTML = ''; return []; }
+    var base = NB.sanitizeName(NB.stripExt($('baseName').value), '文档');
+    var ext = $('extSel').value;
+    var padMode = $('padSel').value;
+    var groups = [];
+
+    if (groupMode === 'size') {
+      var size = Math.max(1, parseInt($('chunkSize').value, 10) || 100);
+      for (var i = 0; i < state.unique.length; i += size) groups.push({ name: base, lines: state.unique.slice(i, i + size) });
+    } else if (groupMode === 'even') {
+      var n = Math.max(1, Math.min(200, parseInt($('evenN').value, 10) || 10));
+      n = Math.min(n, state.unique.length);
+      var per = Math.ceil(state.unique.length / n);
+      for (var k = 0; k < n; k++) groups.push({ name: base, lines: state.unique.slice(k * per, (k + 1) * per) });
+    } else if (groupMode === 'col') {
+      var col = Math.max(1, parseInt($('colIndex').value, 10) || 1) - 1;
+      var sep = $('colSep').value || '----';
+      var map = {}, order = [];
+      state.unique.forEach(function (line) {
+        var parts = line.split(sep);
+        var key = (parts[col] || '未分类').trim() || '未分类';
+        key = NB.sanitizeName(key, '未分类').slice(0, 24);
+        if (!map[key]) { map[key] = []; order.push(key); }
+        map[key].push(line);
+      });
+      order.forEach(function (k) { groups.push({ name: base + '-' + k, lines: map[k] }); });
+    } else {
+      var kws = ($('kwList').value || '').split('|').map(function (s) { return s.trim(); }).filter(Boolean);
+      if (!kws.length) kws = ['未分类'];
+      var m2 = {}, o2 = [];
+      kws.forEach(function (k) { m2[k] = []; o2.push(k); });
+      m2['其他'] = []; o2.push('其他');
+      state.unique.forEach(function (line) {
+        var hit = null;
+        for (var j = 0; j < kws.length; j++) if (line.indexOf(kws[j]) >= 0) { hit = kws[j]; break; }
+        m2[hit || '其他'].push(line);
+      });
+      o2.forEach(function (k) { if (m2[k].length) groups.push({ name: base + '-' + k, lines: m2[k] }); });
+    }
+
+    var total = groups.length;
+    var pad = padMode === 'auto' ? Math.max(2, String(total).length) : parseInt(padMode, 10);
+    var used = Object.create(null);
+    state.plan = groups.map(function (g, i) {
+      var no = String(i + 1).padStart(pad, '0');
+      var name = NB.sanitizeName(g.name + '-' + no, 'doc') + '.' + ext;
+      if (used[name]) {
+        var n = 2;
+        var stem = name.slice(0, -(ext.length + 1));
+        while (used[stem + '-' + n + '.' + ext]) n++;
+        name = stem + '-' + n + '.' + ext;
+      }
+      used[name] = 1;
+      return { name: name, lines: g.lines };
+    });
+    paintNamePreview();
+
+    var show = state.plan.slice(0, 8);
+    $('plan').innerHTML = show.map(function (p) {
+      return '<div class="ac-frow"><svg class="ic"><use href="#i-file"/></svg><span>' + NB.esc(p.name) + '</span><em>' + NB.fmtNum(p.lines.length) + ' 行</em></div>';
+    }).join('') + (state.plan.length > 8 ? '<div class="ac-frow" style="justify-content:center;color:var(--faint)">… 共 ' + state.plan.length + ' 个文件</div>' : '');
+    return state.plan;
+  }
+
+  ['chunkSize', 'colIndex', 'colSep', 'kwList', 'evenN', 'baseName', 'extSel', 'padSel'].forEach(function (id) {
+    $(id).addEventListener('input', NB.debounce(computePlan, 150));
+    $(id).addEventListener('change', computePlan);
+  });
+  $('dedupeSw').addEventListener('click', function () {
+    var on = this.getAttribute('aria-checked') === 'true';
+    this.setAttribute('aria-checked', on ? 'false' : 'true');
+    if (state.raw.length) {
+      state.unique = dedupeOn() ? Array.from(new Set(state.raw)) : state.raw.slice();
+      $('stUnique').textContent = NB.fmtNum(state.unique.length);
+      $('stDup').textContent = NB.fmtNum(state.raw.length - state.unique.length);
+      renderPreview(); computePlan();
+    }
+  });
+
+  /* ---------- 导出方式 / 位置 ---------- */
+  var outMode = 'zip';
+  var chosenDir = null;
+  function dirSupported() { return !!(window.NB && NB.dir && NB.dir.supported); }
+  function paintDir() {
+    $('dirName').textContent = chosenDir ? ('目标文件夹：' + (chosenDir.name || '已选择')) : '未选择文件夹';
+  }
+  function setOutMode(mode) {
+    outMode = mode;
+    document.querySelectorAll('#outSeg button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-o') === mode); });
+    $('dirRow').hidden = mode !== 'dir';
+    $('buildLabel').textContent = mode === 'dir' ? '导出到文件夹' : '打包并导出';
+    if (mode === 'dir' && !dirSupported()) {
+      $('dirRow').hidden = true;
+      $('dirUnsupported').hidden = false;
+    } else {
+      $('dirUnsupported').hidden = true;
+    }
+    paintNamePreview();
+  }
+  document.querySelectorAll('#outSeg button').forEach(function (b) {
+    b.addEventListener('click', function () { setOutMode(b.getAttribute('data-o')); });
+  });
+  function paintNamePreview() {
+    var el = $('namePreview');
+    if (!el) return;
+    if (!state.plan.length) { el.textContent = '文件名预览会显示在这里'; return; }
+    var zip = NB.resolveName($('zipName').value || '打包合集', 'zip').full;
+    var first = state.plan[0].name;
+    var last = state.plan[state.plan.length - 1].name;
+    if (outMode === 'dir') {
+      el.innerHTML = '将写入 <b>' + NB.esc(first) + '</b>' + (state.plan.length > 1 ? ' … <b>' + NB.esc(last) + '</b>' : '') +
+        '，共 <span class="ac-more">' + state.plan.length + '</span> 个文件。';
+    } else {
+      el.innerHTML = 'ZIP 文件名 <b>' + NB.esc(zip) + '</b>，内含 <span class="ac-more">' + state.plan.length + '</span> 个文件。';
+    }
+  }
+  if (!dirSupported()) {
+    $('dirSegBtn').disabled = true;
+    $('dirSegBtn').title = '当前浏览器不支持文件夹写入';
+  }
+  NB.dir && NB.dir.last && NB.dir.last().then(function (dir) {
+    if (dir) { chosenDir = dir; paintDir(); }
+  });
+  $('pickDir').addEventListener('click', function () {
+    if (!dirSupported()) { NB.toast('当前浏览器不支持文件夹导出'); return; }
+    NB.dir.pick().then(function (dir) {
+      chosenDir = dir;
+      paintDir();
+      NB.toast('已选择：' + (dir.name || '文件夹'));
+    }).catch(function (e) {
+      if (e && e.name === 'AbortError') return;
+      NB.toast('无法打开文件夹：' + (e && e.message || e));
+    });
+  });
+  $('lastDir').addEventListener('click', function () {
+    NB.dir.last().then(function (dir) {
+      if (!dir) { NB.toast('还没有记住的文件夹'); return; }
+      chosenDir = dir; paintDir();
+      NB.toast('已使用上次位置：' + (dir.name || '文件夹'));
+    });
+  });
+  ['baseName', 'zipName', 'extSel', 'padSel'].forEach(function (id) {
+    $(id).addEventListener('input', paintNamePreview);
+    $(id).addEventListener('change', paintNamePreview);
+  });
+
+  /* ---------- 打包 ---------- */
+  $('buildBtn').addEventListener('click', function () {
+    if (state.busy) return;
+    var plan = computePlan();
+    if (!plan || !plan.length) { NB.toast('还没有可打包的内容'); return; }
+    var zip = NB.resolveName($('zipName').value || '打包合集', 'zip');
+
+    function setBusy(on) {
+      state.busy = on;
+      $('buildBtn').disabled = on;
+      $('prog').classList.toggle('show', on);
+      if (!on) { $('prog').firstElementChild.style.width = '0%'; }
+    }
+
+    if (outMode === 'dir') {
+      if (!dirSupported()) { NB.toast('当前浏览器不支持文件夹导出，请改用 ZIP'); return; }
+      var ready = chosenDir ? Promise.resolve(chosenDir) : (state.raw.length ? NB.dir.pick() : Promise.reject(new Error('EMPTY')));
+      ready.then(function (dir) {
+        chosenDir = dir; paintDir();
+        var files = plan.map(function (p) { return { name: p.name, text: p.lines.join('\n') }; });
+        function writeFiles() {
+          setBusy(true);
+          return NB.dir.write(dir, files, {
+            onProgress: function (done, total) {
+              $('prog').firstElementChild.style.width = Math.round(done / total * 100) + '%';
+            }
+          }).then(function (names) {
+            $('prog').firstElementChild.style.width = '100%';
+            NB.toast('已导出 ' + names.length + ' 个文件到 ' + (dir.name || '所选文件夹'));
+            NB.haptic(12);
+            return names;
+          });
+        }
+        return Promise.all(files.map(function (f) {
+          return dir.getFileHandle(f.name).then(function () { return f.name; }).catch(function () { return null; });
+        })).then(function (all) {
+          var hits = all.filter(Boolean);
+          if (!hits.length) return writeFiles();
+          return new Promise(function (resolve) {
+            IO.confirm({
+              title: '目标文件夹已有同名文件',
+              text: '将覆盖 ' + hits.length + ' 个文件：' + hits.slice(0, 3).join('、') + (hits.length > 3 ? ' 等' : '') + '。覆盖后不可恢复。',
+              okText: '覆盖导出',
+              danger: true,
+              onOk: function () { resolve(writeFiles()); },
+              onCancel: function () { resolve(null); }
+            });
+          });
+        });
+      }).catch(function (e) {
+        if (e && e.name === 'AbortError') return;
+        if (e && e.message === 'EMPTY') { NB.toast('还没有可导出的内容'); return; }
+        NB.toast('导出失败：' + (e && e.message || e));
+      }).then(function () { setTimeout(function () { setBusy(false); }, 320); });
+      return;
+    }
+
+    setBusy(true);
+    var files = plan.map(function (p) { return { name: p.name, text: p.lines.join('\n') }; });
+    setTimeout(function () {
+      try {
+        $('prog').firstElementChild.style.width = '55%';
+        var bytes = NBZIP.build(files);
+        $('prog').firstElementChild.style.width = '100%';
+        var blob = new Blob([bytes], { type: 'application/zip' });
+        setBusy(false);
+        NB.haptic(8);
+        NB.exportDialog({
+          blob: blob,
+          name: zip.base,
+          ext: 'zip',
+          meta: files.length + ' 个文件 · ' + IO.fmtBytes(bytes.length)
+        });
+      } catch (e) {
+        setBusy(false);
+        NB.toast('打包失败：' + (e && e.message || e));
+      }
+    }, 40);
+  });
+})();
+</script>
+</body>
+</html>

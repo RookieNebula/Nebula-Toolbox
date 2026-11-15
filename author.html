@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-accent="indigo" data-motion="on" data-fx="on">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f3f4f7">
+<title>作者 · 赞助 · Nebula</title>
+<link rel="stylesheet" href="ui-kit.css">
+<link rel="stylesheet" href="tool-page.css">
+<style>
+  .au-hero{position:relative;overflow:hidden;border-radius:22px;padding:20px 18px;border:1px solid var(--line);background:linear-gradient(150deg,var(--accent-soft),transparent 62%),var(--glass);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 1px 0 rgba(255,255,255,.5) inset,var(--shadow-sm);}
+  .au-hero::after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,var(--accent-soft-2),transparent 70%);pointer-events:none;}
+  .au-top{display:flex;align-items:center;gap:13px;position:relative;z-index:1;}
+  .au-avatar{width:62px;height:62px;border-radius:20px;display:grid;place-items:center;flex:none;background:linear-gradient(145deg,var(--accent),var(--accent-2));color:#fff;font-size:24px;font-weight:900;box-shadow:0 10px 24px -10px var(--accent);overflow:hidden;}
+  .au-name{font-size:19px;font-weight:900;letter-spacing:-.02em;line-height:1.2;}
+  .au-bio{margin-top:4px;font-size:10px;color:var(--muted);line-height:1.55;font-weight:650;}
+  .au-badge{display:inline-flex;align-items:center;gap:4px;margin-top:7px;padding:3px 8px;border-radius:20px;background:var(--accent-soft);color:var(--accent);font-size:8.5px;font-weight:850;}
+  .au-badge .ic{width:11px;height:11px;}
+  .au-stats{display:grid;grid-template-columns:1fr;gap:8px;margin-top:16px;position:relative;z-index:1;}
+  .au-stat{padding:9px 6px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line);text-align:center;}
+  .au-stat b{display:block;font-size:15px;font-weight:900;font-variant-numeric:tabular-nums;}
+  .au-stat span{display:block;margin-top:2px;font-size:8px;color:var(--faint);font-weight:750;}
+
+  .qr-tabs{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;padding:4px;background:var(--bg-2);border:1px solid var(--line);border-radius:12px;}
+  .qr-tabs button{height:32px;border-radius:9px;font-size:10px;font-weight:800;color:var(--muted);}
+  .qr-tabs button.on{background:var(--surface-solid);color:var(--ink);box-shadow:0 4px 12px -6px rgba(0,0,0,.28);}
+  .qr-box{margin-top:12px;display:grid;place-items:center;padding:12px;border-radius:16px;background:#fff;border:1px solid var(--line);min-height:220px;position:relative;}
+  .qr-box img{width:100%;max-width:260px;height:auto;display:block;border-radius:8px;}
+  .qr-empty{text-align:center;color:#6b7280;font-size:10px;line-height:1.7;padding:26px 10px;}
+
+  .au-form{display:grid;gap:10px;margin-top:4px;}
+  .au-form label{display:block;font-size:9.5px;font-weight:850;color:var(--muted);margin-bottom:5px;}
+  .au-form input,.au-form textarea{width:100%;border:1px solid var(--line-strong);background:var(--bg-2);border-radius:11px;padding:10px 11px;font-size:11.5px;outline:none;font-weight:700;}
+  .au-form textarea{resize:vertical;min-height:66px;line-height:1.6;}
+  .au-form input:focus,.au-form textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .amt-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+  .amt{height:38px;border-radius:11px;border:1px solid var(--line);background:var(--bg-2);font-size:11.5px;font-weight:850;color:var(--muted);}
+  .amt.on{background:var(--accent-soft);border-color:var(--accent-soft-2);color:var(--accent);}
+
+  .wall{display:grid;gap:8px;margin-top:10px;}
+  .wall-item{display:flex;gap:9px;padding:10px 11px;border-radius:13px;background:var(--bg-2);border:1px solid var(--line);animation:nbIn .3s var(--ease) both;}
+  @keyframes nbIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .wall-av{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;flex:none;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:900;}
+  .wall-body{min-width:0;flex:1;}
+  .wall-body b{font-size:10.5px;font-weight:850;}
+  .wall-body span{display:block;margin-top:3px;font-size:9.5px;color:var(--muted);line-height:1.55;word-break:break-word;}
+
+  .thanks{position:fixed;inset:0;z-index:9997;display:none;align-items:center;justify-content:center;pointer-events:none;}
+  .thanks.show{display:flex;}
+  .thanks-card{padding:20px 24px;border-radius:20px;background:var(--surface-solid);border:1px solid var(--line);box-shadow:var(--shadow-lg);text-align:center;animation:thx .6s var(--spring) both;}
+  @keyframes thx{0%{transform:scale(.8) rotate(-3deg);opacity:0}60%{transform:scale(1.04) rotate(1deg);opacity:1}100%{transform:none;opacity:1}}
+  .thanks-card b{display:block;font-size:17px;font-weight:900;background:linear-gradient(120deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .thanks-card span{display:block;margin-top:6px;font-size:10px;color:var(--faint);font-weight:700;}
+</style>
+</head>
+<body>
+
+<main class="tool-shell">
+  <div id="head"></div>
+
+  <section class="au-hero">
+    <div class="au-top">
+      <div class="au-avatar">N</div>
+      <div style="min-width:0;flex:1">
+        <div class="au-name">Nebula</div>
+        <div class="au-bio">本地数据处理工具箱的作者。感谢每一位使用和赞助的朋友。</div>
+        <span class="au-badge"><svg class="ic"><use href="#i-spark"/></svg><span>v9.0 · 持续更新</span></span>
+      </div>
+    </div>
+    <div class="au-stats"><div class="au-stat"><b>14</b><span>工具数量</span></div></div>
+  </section>
+
+  <section class="panel clip-target" id="sponsor">
+    <div class="panel-head"><svg class="ic"><use href="#i-gift"/></svg><b>赞助作者</b><span class="panel-sub">扫码 · 自愿</span></div>
+    
+    <div class="qr-tabs" id="qrTabs">
+      <button type="button" data-q="wechat" class="on">微信</button>
+      <button type="button" data-q="alipay">支付宝</button>
+      <button type="button" data-q="qq">QQ</button>
+    </div>
+    
+    <div class="qr-box">
+      <!-- 默认直接读取当前文件夹的 wechat.jpg -->
+      <img id="qrImage" src="wechat.jpg" alt="微信收款码" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+      <div class="qr-empty" style="display:none;">找不到图片<br>请确保 wechat.jpg 和 alipay.jpg 在此文件夹中</div>
+    </div>
+
+    <div class="note-line" style="margin-top:10px"><svg class="ic"><use href="#i-info"/></svg><span>收款码只保存在本机；赞助金额由你自助登记，作者确认后才会计入感谢墙。</span></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><svg class="ic"><use href="#i-heart"/></svg><b>登记赞助</b><span class="panel-sub" id="apiState">本地模式</span></div>
+    <div class="au-form">
+      <div>
+        <label>金额</label>
+        <div class="amt-row" id="amtRow">
+          <button class="amt" type="button" data-a="6">6</button>
+          <button class="amt on" type="button" data-a="18">18</button>
+          <button class="amt" type="button" data-a="38">38</button>
+          <button class="amt" type="button" data-a="68">68</button>
+        </div>
+        <input type="number" id="amount" value="18" min="1" max="100000" inputmode="decimal" style="margin-top:8px">
+      </div>
+      <div>
+        <label>昵称（会显示在感谢墙）</label>
+        <input type="text" id="spName" maxlength="20" placeholder="怎么称呼你" autocomplete="off">
+      </div>
+      <div>
+        <label>给作者的一句话（可选，审核后显示）</label>
+        <textarea id="spMsg" maxlength="120" placeholder="例如：工具箱很好用，继续加油！"></textarea>
+      </div>
+      <button class="btn btn-primary" id="spSubmit" type="button"><svg class="ic"><use href="#i-heart"/></svg>我已赞助，登记一下</button>
+    </div>
+    <div class="note-line" style="margin-top:10px"><svg class="ic"><use href="#i-shield"/></svg><span>不会收集手机号、支付账号等敏感信息；昵称与留言会先进入待审列表。</span></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><svg class="ic"><use href="#i-spark"/></svg><b>感谢墙</b><span class="panel-sub" id="wallMeta">0 位</span></div>
+    <div class="wall" id="wall"><div class="preview-empty">还没有公开的赞助记录。</div></div>
+  </section>
+</main>
+
+<div class="thanks" id="thanks"><div class="thanks-card"><b>感谢你的支持！</b><span>每一份赞助都会变成下一次更新</span></div></div>
+
+<script src="lib-io.js"></script>
+<script src="ui-kit.js"></script>
+<script src="app-core.js"></script>
+<script src="vendor/confetti.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var API = ''; 
+
+  $('head').innerHTML = NB.toolHead({
+    icon: '<svg class="ic"><use href="#i-heart"/></svg>',
+    kicker: 'ABOUT & SUPPORT',
+    title: '作者 · 赞助',
+    sub: '了解作者、扫码支持，以及看一眼是谁在帮忙。',
+    tags: ['本地存储', '自愿赞助', '感谢墙']
+  }) + NB.sprite();
+  NB.bindTheme();
+
+  // 切换微信/支付宝逻辑（纯本地读取文件）
+  document.querySelectorAll('#qrTabs button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var type = b.getAttribute('data-q');
+      document.querySelectorAll('#qrTabs button').forEach(function (x) { x.classList.toggle('on', x === b); });
+      
+      var img = $('qrImage');
+      var empty = img.nextElementSibling;
+      
+      img.style.display = 'block';
+      empty.style.display = 'none';
+      
+      if (type === 'wechat') {
+        img.src = 'wechat.jpg';
+      } else if (type === 'alipay') {
+        img.src = 'alipay.jpg';
+      } else if (type === 'qq') {
+        img.src = 'qq.jpg'; 
+      }
+    });
+  });
+
+  document.querySelectorAll('#amtRow .amt').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('#amtRow .amt').forEach(function (x) { x.classList.toggle('on', x === b); });
+      $('amount').value = b.getAttribute('data-a');
+    });
+  });
+
+  function localSponsors() {
+    try { return JSON.parse(localStorage.getItem('nb_sponsors') || '[]') || []; } catch (e) { return []; }
+  }
+  function saveLocal(list) {
+    try { localStorage.setItem('nb_sponsors', JSON.stringify(list.slice(0, 100))); } catch (e) { }
+  }
+
+  $('spSubmit').addEventListener('click', function () {
+    var amount = parseFloat($('amount').value);
+    var name = $('spName').value.trim();
+    var msg = $('spMsg').value.trim();
+    if (!amount || amount < 1) { NB.toast('请填写有效金额'); return; }
+    if (!name) { NB.toast('留个昵称吧'); $('spName').focus(); return; }
+    var payload = { name: name, amount: amount, message: msg };
+    var btn = this;
+    btn.disabled = true;
+
+    function done() {
+      btn.disabled = false;
+      $('spMsg').value = '';
+      celebrate();
+      NB.toast('已提交，作者确认后会出现在感谢墙');
+    }
+    function fail(err) {
+      btn.disabled = false;
+      var list = localSponsors();
+      list.unshift({ name: name, amount: amount, message: msg, ts: Date.now(), status: 'local_pending' });
+      saveLocal(list);
+      done();
+      void err;
+    }
+
+    if (!API) return fail('offline');
+    fetch(API + '/api/sponsor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(done).catch(fail);
+  });
+
+  function renderWall(list) {
+    var box = $('wall');
+    var approvedList = list.filter(function(x) { return x.status === 'approved' || x.status === 'local'; });
+    
+    if (!approvedList || !approvedList.length) {
+      box.innerHTML = '<div class="preview-empty">还没有公开的赞助记录。</div>';
+      return;
+    }
+    box.innerHTML = approvedList.slice(0, 30).map(function (x, i) {
+      var n = String(x.name || '匿名');
+      return '<div class="wall-item" style="animation-delay:' + Math.min(i * 40, 400) + 'ms">' +
+        '<div class="wall-av">' + NB.esc(n.charAt(0)) + '</div>' +
+        '<div class="wall-body"><b>' + NB.esc(n) + '</b>' +
+        (x.message ? '<span>' + NB.esc(x.message) + '</span>' : '') + '</div></div>';
+    }).join('');
+  }
+
+  function loadStats() {
+    var local = localSponsors();
+    if (!API) {
+      $('wallMeta').textContent = '0 位';
+      renderWall(local); 
+      return;
+    }
+    fetch(API + '/api/stats').then(function (r) { return r.json(); }).then(function (d) {
+      $('wallMeta').textContent = (d.count || 0) + ' 位';
+    }).catch(function () { });
+    fetch(API + '/api/sponsors?limit=30').then(function (r) { return r.json(); }).then(function (d) {
+      renderWall(d.items || d.list || []);
+    }).catch(function () { });
+  }
+
+  function celebrate() {
+    $('thanks').classList.add('show');
+    setTimeout(function () { $('thanks').classList.remove('show'); }, 1900);
+    NB.haptic(14);
+    if (window.confetti) {
+      try {
+        confetti({ particleCount: 90, spread: 70, origin: { y: 0.66 }, disableForReducedMotion: true });
+        setTimeout(function () {
+          confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0 }, disableForReducedMotion: true });
+          confetti({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1 }, disableForReducedMotion: true });
+        }, 180);
+      } catch (e) { }
+    }
+  }
+
+  loadStats();
+})();
+</script>
+</body>
+</html>

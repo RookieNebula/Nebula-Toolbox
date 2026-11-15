@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-accent="indigo">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#eef2f7">
+<title>编码实验室 · 逆向实验室</title>
+<style>
+  :root{
+    --bg:#eef2f7;--ink:#0f172a;--muted:#64748b;--faint:#94a3b8;
+    --panel:rgba(255,255,255,.76);--panel2:rgba(255,255,255,.5);--solid:#fff;
+    --line:rgba(255,255,255,.9);--hair:rgba(15,23,42,.07);
+    --shadow:0 16px 36px -14px rgba(31,38,135,.3);--shadow-sm:0 6px 16px -8px rgba(31,38,135,.24);
+    --accent:#6366f1;--accent2:#8b5cf6;--soft:rgba(99,102,241,.13);
+    --ok:#10b981;--bad:#ef4444;--warn:#f59e0b;
+    --ease:cubic-bezier(.2,.8,.2,1);
+  }
+  html[data-theme="dark"]{
+    --bg:#080b14;--ink:#e8ebf5;--muted:#93a0b8;--faint:#6b7891;
+    --panel:rgba(24,30,47,.82);--panel2:rgba(18,24,39,.62);--solid:#141a2b;
+    --line:rgba(255,255,255,.07);--hair:rgba(255,255,255,.07);
+    --shadow:0 18px 40px -16px rgba(0,0,0,.78);--shadow-sm:0 8px 18px -10px rgba(0,0,0,.6);
+    --soft:rgba(99,102,241,.2);
+  }
+  html[data-accent="mint"]{--accent:#10b981;--accent2:#06b6d4;--soft:rgba(16,185,129,.14);}
+  html[data-accent="sunset"]{--accent:#f97316;--accent2:#ef4444;--soft:rgba(249,115,22,.14);}
+  html[data-accent="sakura"]{--accent:#ec4899;--accent2:#a855f7;--soft:rgba(236,72,153,.14);}
+  html[data-accent="graphite"]{--accent:#64748b;--accent2:#334155;--soft:rgba(100,116,139,.16);}
+  html[data-theme="dark"][data-accent="mint"]{--soft:rgba(16,185,129,.22);}
+  html[data-theme="dark"][data-accent="sunset"]{--soft:rgba(249,115,22,.22);}
+  html[data-theme="dark"][data-accent="sakura"]{--soft:rgba(236,72,153,.22);}
+  html[data-theme="dark"][data-accent="graphite"]{--soft:rgba(148,163,184,.2);}
+
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;min-height:100vh;color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background-color:var(--bg);
+    background-image:radial-gradient(circle at 50% -10%,rgba(129,140,248,.22),transparent 58%);
+    background-size:cover;background-position:center;background-attachment:fixed;
+    padding:calc(16px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));}
+  html[data-theme="dark"] body{background-image:radial-gradient(circle at 50% -10%,rgba(99,102,241,.25),transparent 58%),linear-gradient(rgba(6,9,18,.86),rgba(6,9,18,.94));}
+
+  h1{font-size:19px;margin:0 0 3px;font-weight:800;letter-spacing:.2px;}
+  .sub{font-size:11.5px;color:var(--muted);font-weight:600;margin-bottom:14px;}
+
+  .tabs{display:flex;gap:7px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{flex:none;border:1px solid var(--line);background:var(--panel2);color:var(--muted);font-family:inherit;
+    font-size:11.5px;font-weight:800;padding:8px 13px;border-radius:999px;cursor:pointer;transition:.2s var(--ease);}
+  .tab.on{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-color:transparent;
+    box-shadow:0 6px 16px -8px var(--accent);}
+  .tab:active{transform:scale(.95);}
+
+  .panel{display:none;animation:rise .35s var(--ease);}
+  .panel.show{display:block;}
+  @keyframes rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:15px;margin-bottom:13px;
+    box-shadow:var(--shadow);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);}
+  .card-title{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:800;margin-bottom:11px;}
+  .card-title em{font-style:normal;font-size:10.5px;font-weight:700;color:var(--muted);}
+  textarea,input[type=text],input[type=number],input[type=search]{width:100%;border:1px solid var(--hair);background:var(--panel2);
+    border-radius:14px;padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;
+    color:var(--ink);outline:none;line-height:1.65;resize:vertical;}
+  textarea{min-height:96px;}
+  textarea:focus,input:focus{border-color:var(--accent);background:var(--solid);}
+  textarea[readonly]{color:var(--ink);}
+  .btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  button{font-family:inherit;font-size:12px;font-weight:800;padding:10px 13px;border-radius:12px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--ink);cursor:pointer;transition:.18s var(--ease);}
+  button:active{transform:scale(.95);}
+  button.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-color:transparent;
+    box-shadow:0 6px 16px -8px var(--accent);}
+  button.ghost{color:var(--muted);}
+  .out{margin-top:11px;background:var(--panel2);border:1px dashed var(--line);border-radius:14px;padding:12px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.7;
+    white-space:pre-wrap;word-break:break-all;min-height:56px;max-height:46vh;overflow:auto;color:var(--ink);}
+  .out:empty::before{content:'结果会显示在这里';color:var(--faint);font-family:inherit;}
+  .kv{display:flex;justify-content:space-between;gap:10px;padding:8px 2px;border-bottom:1px dashed var(--hair);font-size:12px;}
+  .kv:last-child{border-bottom:none;}
+  .kv span{color:var(--muted);font-weight:700;flex:none;}
+  .kv b{font-weight:700;word-break:break-all;text-align:right;}
+  .chain{display:flex;flex-direction:column;gap:7px;}
+  .step{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 11px;}
+  .step .st-type{font-size:10px;font-weight:800;color:var(--accent);letter-spacing:.4px;margin-bottom:5px;display:flex;gap:6px;align-items:center;}
+  .step .st-body{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.6;word-break:break-all;color:var(--ink);}
+  .badge{display:inline-block;font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;background:var(--soft);color:var(--accent);}
+  .badge.bad{background:rgba(239,68,68,.14);color:var(--bad);}
+  .badge.ok{background:rgba(16,185,129,.14);color:var(--ok);}
+  .row-inline{display:flex;gap:8px;align-items:center;}
+  .row-inline input,.row-inline select{flex:1;min-width:0;}
+  select{border:1px solid var(--hair);background:var(--panel2);color:var(--ink);border-radius:12px;padding:11px;
+    font-family:inherit;font-size:12.5px;font-weight:700;outline:none;}
+  .hint{font-size:10.5px;line-height:1.6;color:var(--muted);font-weight:600;margin-top:8px;}
+
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+</style>
+<link rel="stylesheet" href="tool-skin.css">
+</head>
+<body class="legacy-tool">
+
+<h1>编码实验室</h1>
+<div class="sub">全部离线计算 · 不联网、不上传</div>
+
+<div class="tabs" id="tabs">
+  <button class="tab on" data-tab="auto">智能识别</button>
+  <button class="tab" data-tab="codec">编码解码</button>
+  <button class="tab" data-tab="hash">哈希</button>
+  <button class="tab" data-tab="jwt">JWT</button>
+  <button class="tab" data-tab="time">时间</button>
+  <button class="tab" data-tab="base">进制</button>
+</div>
+
+<!-- ============ 智能识别 ============ -->
+<div class="panel show" id="p-auto">
+  <div class="card">
+    <div class="card-title"><span>粘贴任意一段乱码 / 编码串</span><em>自动逐层还原</em></div>
+    <textarea id="autoInput" placeholder="例如：aHR0cHM6Ly9leGFtcGxlLmNvbS8 或 %7B%22a%22%3A1%7D 或 \\u4f60\\u597d"></textarea>
+    <div class="btns">
+      <button class="primary" id="autoRun">开始识别</button>
+      <button id="autoImport">导入文件</button>
+      <button class="ghost" id="autoCopy">复制结果</button>
+    </div>
+    <div class="out" id="autoOut"></div>
+    <div class="hint">支持：Base64（含 URL-safe）、URL 编码、Hex、Unicode 转义、HTML 实体、JWT、JSON。会连续解到不能再解为止。</div>
+  </div>
+</div>
+
+<!-- ============ 编码解码 ============ -->
+<div class="panel" id="p-codec">
+  <div class="card">
+    <div class="card-title"><span>输入</span><em id="codecLen">0 字</em></div>
+    <textarea id="codecIn" placeholder="要处理的内容…"></textarea>
+    <div class="btns">
+      <button id="codecImport">导入</button>
+      <button class="ghost" id="codecClear">清空</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>操作</span><em>点击即时转换</em></div>
+    <div class="btns" style="margin-top:0">
+      <button data-op="b64e">Base64 编码</button>
+      <button data-op="b64d">Base64 解码</button>
+      <button data-op="urle">URL 编码</button>
+      <button data-op="urld">URL 解码</button>
+      <button data-op="hexe">Hex 编码</button>
+      <button data-op="hexd">Hex 解码</button>
+      <button data-op="uni">Unicode 转义</button>
+      <button data-op="unid">Unicode 还原</button>
+      <button data-op="html">HTML 实体</button>
+      <button data-op="htmld">实体还原</button>
+      <button data-op="rot13">ROT13</button>
+    </div>
+    <div class="out" id="codecOut"></div>
+    <div class="btns">
+      <button id="codecCopy">复制结果</button>
+      <button id="codecExport">导出 TXT</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 哈希 ============ -->
+<div class="panel" id="p-hash">
+  <div class="card">
+    <div class="card-title"><span>文本哈希</span><em>MD5 / SHA-1 / SHA-256</em></div>
+    <textarea id="hashIn" placeholder="输入要计算哈希的文本…"></textarea>
+    <div class="btns">
+      <button class="primary" id="hashRun">计算</button>
+      <button id="hashImport">导入文件</button>
+      <button class="ghost" id="hashCopy">复制</button>
+    </div>
+    <div class="out" id="hashOut"></div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>文件哈希</span><em>≤ 20MB</em></div>
+    <div class="btns" style="margin-top:0">
+      <button id="fileHashBtn">选择文件</button>
+    </div>
+    <div class="out" id="fileHashOut"></div>
+  </div>
+</div>
+
+<!-- ============ JWT ============ -->
+<div class="panel" id="p-jwt">
+  <div class="card">
+    <div class="card-title"><span>JWT 解析</span><em>只解码，不验签</em></div>
+    <textarea id="jwtIn" placeholder="粘贴 JWT（形如 xxx.yyy.zzz）"></textarea>
+    <div class="btns">
+      <button class="primary" id="jwtRun">解析</button>
+      <button class="ghost" id="jwtClear">清空</button>
+    </div>
+    <div class="out" id="jwtOut"></div>
+    <div class="hint">仅本地解码 header / payload，并显示过期时间；不会校验签名。</div>
+  </div>
+</div>
+
+<!-- ============ 时间 ============ -->
+<div class="panel" id="p-time">
+  <div class="card">
+    <div class="card-title"><span>时间戳转换</span><em>自动识别秒 / 毫秒</em></div>
+    <div class="row-inline">
+      <input type="text" id="tsIn" placeholder="1700000000 或 2026-11-05 12:00:00">
+      <button class="primary" id="tsRun" style="flex:none">转换</button>
+    </div>
+    <div class="btns">
+      <button id="tsNow">当前时间</button>
+      <button class="ghost" id="tsClear">清空</button>
+    </div>
+    <div class="out" id="tsOut"></div>
+  </div>
+</div>
+
+<!-- ============ 进制 ============ -->
+<div class="panel" id="p-base">
+  <div class="card">
+    <div class="card-title"><span>进制转换</span><em>2 / 8 / 10 / 16 / 36</em></div>
+    <div class="row-inline">
+      <input type="text" id="baseIn" placeholder="输入数值，如 255 或 FF">
+      <select id="baseFrom" style="flex:none;width:96px">
+        <option value="10">10 进制</option>
+        <option value="16">16 进制</option>
+        <option value="2">2 进制</option>
+        <option value="8">8 进制</option>
+        <option value="36">36 进制</option>
+      </select>
+    </div>
+    <div class="btns"><button class="primary" id="baseRun">转换</button></div>
+    <div class="out" id="baseOut"></div>
+  </div>
+</div>
+
+<input type="file" id="filePick" hidden>
+
+<script src="lib-io.js"></script>
+<script src="app-core.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------------- 文本 / 编码工具 ---------------- */
+  function utf8Bytes(s) {
+    var out = [], i, c;
+    for (i = 0; i < s.length; i++) {
+      c = s.charCodeAt(i);
+      if (c < 0x80) out.push(c);
+      else if (c < 0x800) { out.push(0xC0 | (c >> 6), 0x80 | (c & 63)); }
+      else if (c < 0xD800 || c >= 0xE000) { out.push(0xE0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63)); }
+      else {
+        i++; c = 0x10000 + (((c & 1023) << 10) | (s.charCodeAt(i) & 1023));
+        out.push(0xF0 | (c >> 18), 0x80 | ((c >> 12) & 63), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+      }
+    }
+    return out;
+  }
+  function bytesToUtf8(bytes) { try { return new TextDecoder('utf-8').decode(new Uint8Array(bytes)); } catch (e) { return null; } }
+  function b64encode(s) {
+    var bytes = utf8Bytes(s), bin = '';
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+  function b64decode(s) {
+    s = s.replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4) s += '=';
+    var bin = atob(s), bytes = [];
+    for (var i = 0; i < bin.length; i++) bytes.push(bin.charCodeAt(i));
+    var t = bytesToUtf8(bytes);
+    if (t === null) throw new Error('不是有效的 UTF-8 文本');
+    return t;
+  }
+  function toHex(s) {
+    return utf8Bytes(s).map(function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+  }
+  function fromHex(s) {
+    s = s.replace(/\s+/g, '').replace(/0x/gi, '');
+    if (!/^[0-9a-fA-F]*$/.test(s) || s.length % 2) throw new Error('不是有效的 Hex');
+    var bytes = [];
+    for (var i = 0; i < s.length; i += 2) bytes.push(parseInt(s.substr(i, 2), 16));
+    var t = bytesToUtf8(bytes);
+    if (t === null) throw new Error('不是有效的 UTF-8 文本');
+    return t;
+  }
+  function unicodeEscape(s) {
+    return Array.prototype.map.call(s, function (ch) {
+      var code = ch.charCodeAt(0);
+      return '\\u' + ('0000' + code.toString(16)).slice(-4);
+    }).join('');
+  }
+  function unicodeUnescape(s) {
+    return s.replace(/\\u([0-9a-fA-F]{4})/g, function (_, h) { return String.fromCharCode(parseInt(h, 16)); });
+  }
+  function htmlEscape(s) {
+    return s.replace(/[&<>"']/g, function (c) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+    });
+  }
+  function htmlUnescape(s) {
+    return s.replace(/&(amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);/g, function (m, e) {
+      if (e.charAt(0) === '#') {
+        var code = e.charAt(1).toLowerCase() === 'x' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+        return isNaN(code) ? m : String.fromCharCode(code);
+      }
+      return ({ amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" })[e] || m;
+    });
+  }
+  function rot13(s) {
+    return s.replace(/[a-zA-Z]/g, function (c) {
+      var base = c <= 'Z' ? 65 : 97;
+      return String.fromCharCode((c.charCodeAt(0) - base + 13) % 26 + base);
+    });
+  }
+  function printableRatio(s) {
+    if (!s) return 0;
+    var ok = 0, n = Math.min(s.length, 400);
+    for (var i = 0; i < n; i++) {
+      var c = s.charCodeAt(i);
+      if (c === 9 || c === 10 || c === 13 || (c >= 32 && c !== 127)) ok++;
+    }
+    return ok / n;
+  }
+
+  /* ---------------- MD5 ---------------- */
+  function md5(input) {
+    var bytes = utf8Bytes(String(input));
+    var bitLen = bytes.length * 8;
+    var msg = bytes.slice();
+    msg.push(0x80);
+    while (msg.length % 64 !== 56) msg.push(0);
+    var lo = bitLen >>> 0, hi = Math.floor(bitLen / 4294967296) >>> 0;
+    for (var i = 0; i < 4; i++) msg.push((lo >>> (i * 8)) & 0xff);
+    for (var j = 0; j < 4; j++) msg.push((hi >>> (j * 8)) & 0xff);
+
+    var S = [7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
+      5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20,
+      4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
+      6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21];
+    var K = [];
+    for (var k = 0; k < 64; k++) K[k] = Math.floor(Math.abs(Math.sin(k + 1)) * 4294967296);
+
+    var a0 = 0x67452301, b0 = 0xefcdab89, c0 = 0x98badcfe, d0 = 0x10325476;
+
+    for (var off = 0; off < msg.length; off += 64) {
+      var M = [];
+      for (var t = 0; t < 16; t++) {
+        M[t] = msg[off + t * 4] | (msg[off + t * 4 + 1] << 8) | (msg[off + t * 4 + 2] << 16) | (msg[off + t * 4 + 3] << 24);
+      }
+      var A = a0, B = b0, C = c0, D = d0;
+      for (var r = 0; r < 64; r++) {
+        var F, g;
+        if (r < 16) { F = (B & C) | (~B & D); g = r; }
+        else if (r < 32) { F = (D & B) | (~D & C); g = (5 * r + 1) % 16; }
+        else if (r < 48) { F = B ^ C ^ D; g = (3 * r + 5) % 16; }
+        else { F = C ^ (B | ~D); g = (7 * r) % 16; }
+        F = (F + A + K[r] + M[g]) | 0;
+        var tmp = D; D = C; C = B;
+        B = (B + ((F << S[r]) | (F >>> (32 - S[r])))) | 0;
+        A = tmp;
+      }
+      a0 = (a0 + A) | 0; b0 = (b0 + B) | 0; c0 = (c0 + C) | 0; d0 = (d0 + D) | 0;
+    }
+    function le(n) {
+      var s = '';
+      for (var q = 0; q < 4; q++) s += ((n >>> (q * 8)) & 0xff).toString(16).padStart(2, '0');
+      return s;
+    }
+    return le(a0) + le(b0) + le(c0) + le(d0);
+  }
+
+  function sha(algo, buf) {
+    if (!window.crypto || !window.crypto.subtle) return Promise.reject(new Error('当前环境不支持 WebCrypto'));
+    return window.crypto.subtle.digest(algo, buf).then(function (ab) {
+      return Array.prototype.map.call(new Uint8Array(ab), function (b) {
+        return ('0' + b.toString(16)).slice(-2);
+      }).join('');
+    });
+  }
+
+  /* ---------------- 结果输出 ---------------- */
+  function setOut(id, text) { $(id).textContent = text; }
+  function copyOut(id) {
+    var t = $(id).textContent;
+    if (!t) return IO.toast('没有可复制的内容', 'err');
+    IO.copy(t).then(function (ok) { IO.toast(ok ? '已复制' : '复制失败', ok ? 'ok' : 'err'); });
+  }
+
+  /* ---------------- Tab ---------------- */
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('#tabs .tab'));
+  function showTab(name) {
+    tabs.forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-tab') === name); });
+    Array.prototype.forEach.call(document.querySelectorAll('.panel'), function (p) {
+      p.classList.toggle('show', p.id === 'p-' + name);
+    });
+  }
+  tabs.forEach(function (b) {
+    b.addEventListener('click', function () { showTab(b.getAttribute('data-tab')); });
+  });
+  try {
+    var q = new URLSearchParams(location.search).get('tab');
+    var valid = tabs.map(function (b) { return b.getAttribute('data-tab'); });
+    if (q && valid.indexOf(q) >= 0) showTab(q);
+  } catch (e) { }
+
+  /* ---------------- 智能识别 ---------------- */
+  function tryDecode(str) {
+    var s = str.trim();
+    if (!s) return null;
+
+    // JWT
+    if (/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*$/.test(s)) {
+      try {
+        var h = JSON.parse(b64decode(s.split('.')[0]));
+        var p = JSON.parse(b64decode(s.split('.')[1]));
+        return { type: 'JWT', text: JSON.stringify({ header: h, payload: p }, null, 2) };
+      } catch (e) { }
+    }
+    // JSON
+    if (/^[\[{]/.test(s)) {
+      try { return { type: 'JSON 美化', text: JSON.stringify(JSON.parse(s), null, 2) }; } catch (e) { }
+    }
+    // Unicode 转义
+    if (/\\u[0-9a-fA-F]{4}/.test(s)) {
+      var u = unicodeUnescape(s);
+      if (u !== s && printableRatio(u) > 0.85) return { type: 'Unicode 转义', text: u };
+    }
+    // HTML 实体
+    if (/&(#\d+|#x[0-9a-fA-F]+|[a-z]+);/.test(s)) {
+      var he = htmlUnescape(s);
+      if (he !== s) return { type: 'HTML 实体', text: he };
+    }
+    // URL 编码
+    if (/%[0-9a-fA-F]{2}/.test(s)) {
+      try {
+        var ud = decodeURIComponent(s);
+        if (ud !== s) return { type: 'URL 编码', text: ud };
+      } catch (e) { }
+    }
+    // Base64
+    if (/^[A-Za-z0-9+/_\-\s]{8,}={0,2}$/.test(s) && s.replace(/\s/g, '').length % 4 !== 1) {
+      try {
+        var bd = b64decode(s);
+        if (bd && printableRatio(bd) > 0.85) return { type: 'Base64', text: bd };
+      } catch (e) { }
+    }
+    // Hex
+    if (/^[0-9a-fA-F\s]{16,}$/.test(s) && s.replace(/\s/g, '').length % 2 === 0) {
+      try {
+        var hd = fromHex(s);
+        if (hd && printableRatio(hd) > 0.85) return { type: 'Hex', text: hd };
+      } catch (e) { }
+    }
+    return null;
+  }
+
+  function runAuto() {
+    var raw = $('autoInput').value;
+    if (!raw.trim()) return IO.toast('先粘贴内容', 'err');
+    var cur = raw, steps = [], guard = 0;
+    while (guard++ < 6) {
+      var r = tryDecode(cur);
+      if (!r || r.text === cur) break;
+      steps.push(r);
+      cur = r.text;
+    }
+    if (!steps.length) {
+      setOut('autoOut', '没有识别到可还原的编码层次。\n\n可尝试：\n· 先看是不是 Base64（结尾常见 = ）\n· URL 编码里常含 %XX\n· Hex 只有 0-9a-f\n· 混淆 JS 里的 \\uXXXX 是 Unicode 转义');
+      return;
+    }
+    var html = '';
+    steps.forEach(function (s, i) {
+      html += '<div class="step"><div class="st-type">第 ' + (i + 1) + ' 层 · <span class="badge">' + IO.escape(s.type) + '</span></div>' +
+        '<div class="st-body">' + IO.escape(s.text.slice(0, 600)) + (s.text.length > 600 ? '\n…' : '') + '</div></div>';
+    });
+    $('autoOut').innerHTML = '<div class="chain">' + html + '</div>';
+    IO.toast('识别到 ' + steps.length + ' 层编码', 'ok');
+  }
+
+  /* ---------------- 编码解码 ---------------- */
+  function doCodec(op) {
+    var v = $('codecIn').value;
+    if (!v) return IO.toast('请输入内容', 'err');
+    try {
+      var out;
+      switch (op) {
+        case 'b64e': out = b64encode(v); break;
+        case 'b64d': out = b64decode(v); break;
+        case 'urle': out = encodeURIComponent(v); break;
+        case 'urld': out = decodeURIComponent(v); break;
+        case 'hexe': out = toHex(v); break;
+        case 'hexd': out = fromHex(v); break;
+        case 'uni': out = unicodeEscape(v); break;
+        case 'unid': out = unicodeUnescape(v); break;
+        case 'html': out = htmlEscape(v); break;
+        case 'htmld': out = htmlUnescape(v); break;
+        case 'rot13': out = rot13(v); break;
+        default: out = v;
+      }
+      setOut('codecOut', out);
+      IO.toast('转换完成', 'ok');
+    } catch (e) {
+      setOut('codecOut', '❌ ' + e.message);
+      IO.toast('转换失败', 'err');
+    }
+  }
+
+  /* ---------------- 哈希 ---------------- */
+  function runHash() {
+    var v = $('hashIn').value;
+    if (!v) return IO.toast('请输入文本', 'err');
+    var lines = [];
+    lines.push('MD5     ' + md5(v));
+    setOut('hashOut', lines.join('\n') + '\n计算中…');
+    var buf = new TextEncoder().encode(v);
+    sha('SHA-1', buf).then(function (h1) {
+      lines.push('SHA-1   ' + h1);
+      return sha('SHA-256', buf);
+    }).then(function (h256) {
+      lines.push('SHA-256 ' + h256);
+      lines.push('字符数  ' + v.length + ' · UTF-8 ' + buf.length + ' 字节');
+      setOut('hashOut', lines.join('\n'));
+    }).catch(function () {
+      lines.push('SHA-1 / SHA-256  当前环境不支持（可只使用 MD5）');
+      setOut('hashOut', lines.join('\n'));
+    });
+  }
+
+  /* ---------------- JWT ---------------- */
+  function runJwt() {
+    var v = $('jwtIn').value.trim();
+    if (!v) return IO.toast('请粘贴 JWT', 'err');
+    var parts = v.split('.');
+    if (parts.length < 2) return IO.toast('不是有效的 JWT（需要 2~3 段）', 'err');
+    try {
+      var header = JSON.parse(b64decode(parts[0]));
+      var payload = JSON.parse(b64decode(parts[1]));
+      var lines = [];
+      lines.push('【Header】\n' + JSON.stringify(header, null, 2));
+      lines.push('【Payload】\n' + JSON.stringify(payload, null, 2));
+      lines.push('【状态】');
+      if (payload.exp) {
+        var exp = new Date(payload.exp * 1000);
+        var diff = payload.exp * 1000 - Date.now();
+        lines.push('过期时间：' + exp.toLocaleString('zh-CN'));
+        lines.push(diff > 0 ? ('状态：有效（剩余 ' + Math.round(diff / 60000) + ' 分钟）') : '状态：已过期');
+      } else {
+        lines.push('payload 中没有 exp 字段（不会自动过期）');
+      }
+      if (payload.iat) lines.push('签发时间：' + new Date(payload.iat * 1000).toLocaleString('zh-CN'));
+      if (parts.length < 3) lines.push('注意：缺少签名段，可能是手工拼接的 token');
+      setOut('jwtOut', lines.join('\n\n'));
+      IO.toast('解析完成', 'ok');
+    } catch (e) {
+      setOut('jwtOut', '❌ 解析失败：' + e.message);
+      IO.toast('解析失败', 'err');
+    }
+  }
+
+  /* ---------------- 时间 ---------------- */
+  function fmt(d) {
+    var p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' +
+      p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+  }
+  function runTs() {
+    var v = $('tsIn').value.trim();
+    if (!v) return IO.toast('请输入时间戳或时间', 'err');
+    var d = null, ts = 0;
+    if (/^\d{9,13}$/.test(v)) {
+      ts = parseInt(v, 10);
+      if (v.length <= 10) ts *= 1000;
+      d = new Date(ts);
+    } else {
+      var norm = v.replace(/\//g, '-');
+      d = new Date(norm);
+      if (isNaN(d.getTime())) return IO.toast('无法识别的时间格式', 'err');
+      ts = d.getTime();
+    }
+    if (isNaN(d.getTime())) return IO.toast('时间无效', 'err');
+    var diff = d.getTime() - Date.now();
+    var rel;
+    if (Math.abs(diff) < 60000) rel = '刚刚';
+    else if (diff > 0) rel = Math.round(diff / 60000) + ' 分钟后';
+    else rel = Math.round(-diff / 60000) + ' 分钟前';
+    setOut('tsOut',
+      '时间（本地）：' + fmt(d) + '\n' +
+      '时间（UTC） ：' + d.toISOString().replace('T', ' ').slice(0, 19) + '\n' +
+      '秒级时间戳 ：' + Math.floor(d.getTime() / 1000) + '\n' +
+      '毫秒时间戳 ：' + d.getTime() + '\n' +
+      '相对现在   ：' + rel);
+  }
+
+  /* ---------------- 进制 ---------------- */
+  function runBase() {
+    var v = $('baseIn').value.trim().replace(/\s/g, '');
+    if (!v) return IO.toast('请输入数值', 'err');
+    var from = parseInt($('baseFrom').value, 10);
+    var allow = { 2: /^[01]+$/, 8: /^[0-7]+$/, 10: /^\d+$/, 16: /^[0-9a-fA-F]+$/, 36: /^[0-9a-zA-Z]+$/ };
+    if (allow[from] && !allow[from].test(v)) return IO.toast('该进制下数值无效', 'err');
+    var n = parseInt(v, from);
+    if (isNaN(n)) return IO.toast('该进制下数值无效', 'err');
+    if (n > Number.MAX_SAFE_INTEGER) return IO.toast('数值过大，超出安全整数范围', 'err');
+    setOut('baseOut',
+      '2  进制  ' + n.toString(2) + '\n' +
+      '8  进制  ' + n.toString(8) + '\n' +
+      '10 进制  ' + String(n) + '\n' +
+      '16 进制  ' + n.toString(16).toUpperCase() + '\n' +
+      '36 进制  ' + n.toString(36).toUpperCase());
+  }
+
+  /* ---------------- 绑定 ---------------- */
+  $('autoRun').addEventListener('click', runAuto);
+  $('autoCopy').addEventListener('click', function () { copyOut('autoOut'); });
+
+  $('codecIn').addEventListener('input', function () {
+    $('codecLen').textContent = this.value.length + ' 字';
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#p-codec [data-op]'), function (b) {
+    b.addEventListener('click', function () { doCodec(b.getAttribute('data-op')); });
+  });
+  $('codecCopy').addEventListener('click', function () { copyOut('codecOut'); });
+  $('codecExport').addEventListener('click', function () {
+    var last = window.NB && NB.lastImport && NB.lastImport();
+    NB.exportDialog({ text: $('codecOut').textContent, name: last && last.name ? NB.stripExt(last.name) : '编码结果', ext: 'txt', meta: NB.fmtNum($('codecOut').textContent.length) + ' 字符' });
+  });
+  $('codecClear').addEventListener('click', function () {
+    $('codecIn').value = ''; $('codecOut').textContent = ''; $('codecLen').textContent = '0 字';
+    if (window.IO && IO.clearFx) IO.clearFx('清空成功');
+  });
+
+  $('hashRun').addEventListener('click', runHash);
+  $('hashCopy').addEventListener('click', function () { copyOut('hashOut'); });
+  $('jwtRun').addEventListener('click', runJwt);
+  $('jwtClear').addEventListener('click', function () {
+    $('jwtIn').value = ''; $('jwtOut').textContent = '';
+    if (window.IO && IO.clearFx) IO.clearFx('清空成功');
+  });
+  $('tsRun').addEventListener('click', runTs);
+  $('tsNow').addEventListener('click', function () {
+    var now = new Date();
+    $('tsIn').value = String(Math.floor(now.getTime() / 1000));
+    runTs();
+  });
+  $('tsClear').addEventListener('click', function () {
+    $('tsIn').value = ''; $('tsOut').textContent = '';
+    if (window.IO && IO.clearFx) IO.clearFx('清空成功');
+  });
+  $('baseRun').addEventListener('click', runBase);
+
+  /* 文件选择：复用同一个隐藏 input，按触发者决定处理方式 */
+  var pickTarget = null;
+  $('filePick').addEventListener('change', function (e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var target = pickTarget;
+    e.target.value = '';
+    if (target === 'fileHash') {
+      var mb = file.size / 1048576;
+      if (mb > 20) return IO.toast('文件超过 20MB，请换小文件', 'err');
+      setOut('fileHashOut', '计算中…（' + IO.fmtBytes(file.size) + '）');
+      var reader = new FileReader();
+      reader.onload = function (ev) {
+        var buf = ev.target.result;
+        sha('SHA-256', buf).then(function (h) {
+          setOut('fileHashOut', '文件：' + file.name + '\n大小：' + IO.fmtBytes(file.size) + '\nSHA-256：\n' + h);
+        }).catch(function () {
+          setOut('fileHashOut', '当前环境不支持文件哈希（需要 WebCrypto）');
+        });
+      };
+      reader.onerror = function () { setOut('fileHashOut', '读取失败'); };
+      reader.readAsArrayBuffer(file);
+      return;
+    }
+    IO.readFile(file).then(function (text) {
+      if (window.NB && NB.rememberImport) NB.rememberImport(file.name, null, file.size);
+      if (target === 'auto') $('autoInput').value = text;
+      else if (target === 'codec') $('codecIn').value = text;
+      else if (target === 'hash') $('hashIn').value = text;
+      IO.toast('已导入 ' + text.length + ' 字');
+    }).catch(function (err) { IO.toast(err.message, 'err'); });
+  });
+
+  function importText(target, inputId) {
+    if (window.NB && NB.upload) {
+      NB.upload({
+        accept: '.txt,.csv,.log,.tsv,.json,.jwt,text/plain,text/csv',
+        onText: function (text, file) {
+          $(inputId).value = text;
+          NB.rememberImport(file.name, null, file.size);
+          IO.toast('已导入 ' + file.name + ' · ' + text.length + ' 字');
+        }
+      });
+      return;
+    }
+    pickTarget = target; $('filePick').click();
+  }
+  $('autoImport').addEventListener('click', function () { importText('auto', 'autoInput'); });
+  $('codecImport').addEventListener('click', function () { importText('codec', 'codecIn'); });
+  $('hashImport').addEventListener('click', function () { importText('hash', 'hashIn'); });
+  $('fileHashBtn').addEventListener('click', function () { pickTarget = 'fileHash'; $('filePick').click(); });
+
+  /* 首屏示例：方便直接体验 */
+  if (location.search.indexOf('tab=auto') >= 0) {
+    $('autoInput').value = 'aHR0cHM6Ly9leGFtcGxlLmNvbS8%3Fq%3D1';
+    setTimeout(runAuto, 260);
+  }
+})();
+</script>
+<script src="tool-skin.js"></script>
+<script src="v9-upgrade.js"></script>
+</body>
+</html>
