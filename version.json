@@ -1,4 +1,5 @@
 {
-  "version": "1.0.0",
-  "downloadUrl": "https://github.com/RookieNebula/Nebula-Toolbox/releases"
+  "version": "1.0.1",
+  "downloadUrl": "https://ghproxy.net/https://github.com/RookieNebula/Nebula-Toolbox/releases/download/v01.01/Console_v1.0.0.APK",
+  "updateLog": "首个正式版发布，修复了特效库路径问题。"
 }
